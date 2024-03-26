@@ -1,0 +1,6 @@
+assets/
+nohup.out
+*.pth
+*.pt
+venv/
+.idea/
