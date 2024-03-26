@@ -4,3 +4,4 @@ nohup.out
 *.pt
 venv/
 .idea/
+data/
