@@ -8,19 +8,10 @@ load_dotenv()
 
 
 class WandbManager:
-    def __init__(self, lr: float, architecture: str, dataset: str, artifact: str, epochs: int) -> None:
+    def __init__(self, config: dict) -> None:
         wandb.login(key=os.environ["WANDB_API_KEY"])
         logger.debug("Initializing wandb...")
-        wandb.init(
-            project="tiny_brains",
-            name=artifact,
-            config={
-                "learning_rate": lr,
-                "architecture": architecture,
-                "dataset": dataset,
-                "epochs": epochs,
-            }    
-        )
+        wandb.init(**config)
     
     def log(self, data: dict):
         wandb.log(data)
