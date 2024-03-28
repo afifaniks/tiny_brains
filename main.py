@@ -10,7 +10,7 @@ from models.unet import UNet
 from util.trainer import Trainer
 
 train_image_dir = "assets/train_images/train/data"
-train_label_dir = "assets/train_labels/train/gt"
+train_label_dir = "assets/train_images/train/gt"
 validation_image_dir = "assets/train_images/val/data"
 validation_label_dir = "assets/train_images/val/gt"
 

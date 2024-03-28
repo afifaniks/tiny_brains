@@ -34,6 +34,7 @@ class CustomDataset(Dataset):
         if self.transforms is not None:
             # apply the transformations
             image = self.transforms(image)
+            label = self.transforms(label)
 
         # return a tuple of the images
         return image, label
