@@ -4,3 +4,6 @@ nohup.out
 *.pt
 venv/
 .idea/
+data/
+wandb/
+.env
