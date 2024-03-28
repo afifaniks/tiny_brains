@@ -5,13 +5,14 @@ from torch.utils.data import DataLoader
 import torch.optim as optim
 from loguru import logger
 
-from dataset.custom_dataset import CustomDataset    
+from dataset.custom_dataset import CustomDataset
 from models.unet import UNet
 from util.trainer import Trainer
 
-
 train_image_dir = "assets/train_images/train/data"
+train_label_dir = "assets/train_labels/train/gt"
 validation_image_dir = "assets/train_images/val/data"
+validation_label_dir = "assets/train_images/val/gt"
 
 TRANSFORMATIONS = transforms.Compose([
     transforms.ToTensor(),
@@ -21,9 +22,8 @@ TRANSFORMATIONS = transforms.Compose([
 
 # Prepare dataset
 logger.debug(f"Preparing datasets...")
-train_dataset = CustomDataset(train_image_dir, TRANSFORMATIONS)
-test_dataset = CustomDataset(validation_image_dir, TRANSFORMATIONS)
-
+train_dataset = CustomDataset(train_image_dir, train_label_dir, TRANSFORMATIONS)
+test_dataset = CustomDataset(validation_image_dir, validation_label_dir, TRANSFORMATIONS)
 
 # Training parameters
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -47,9 +47,9 @@ optimizer = optim.Adam(model.parameters(), lr=lr)
 criterion = nn.MSELoss()
 epochs = 30
 wandb_config = {
-        "project": "tiny_brains",
-        "name": f"unet_mri_{lr}",
-        "config": {
+    "project": "tiny_brains",
+    "name": f"unet_mri_{lr}",
+    "config": {
         "learning_rate": lr,
         "architecture": "U-Net",
         "dataset": "xx",
@@ -70,4 +70,3 @@ trainer.train(
     device=DEVICE,
     output_path="test.pth"
 )
-
