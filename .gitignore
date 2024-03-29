@@ -7,3 +7,4 @@ venv/
 data/
 wandb/
 .env
+__pycache__/
