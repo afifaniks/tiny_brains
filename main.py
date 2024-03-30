@@ -1,6 +1,9 @@
+import os
+import shutil
 import torch
 import torch.nn as nn
 from torchvision import transforms
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
 import torch.optim as optim
 from loguru import logger
@@ -10,10 +13,15 @@ from dataset.custom_dataset import CustomDataset
 from models.unet import UNet
 from util.trainer import Trainer
 
+
 train_image_dir = "assets/train_images/train/data"
 train_label_dir = "assets/train_images/train/gt"
 validation_image_dir = "assets/train_images/val/data"
 validation_label_dir = "assets/train_images/val/gt"
+
+shutil.rmtree("assets/model_outputs")
+
+os.mkdir("assets/model_outputs")
 
 TRANSFORMATIONS = transforms.Compose([
     transforms.ToTensor(),
@@ -43,10 +51,12 @@ model = UNet()
 model = model.to(DEVICE)
 
 # Hyperparameters
-lr = 0.0005
+lr = 5e-4
+
 optimizer = optim.Adam(model.parameters(), lr=lr)
+lr_scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10, threshold=5e-10)
 criterion = nn.MSELoss()
-epochs = 300
+epochs = 500
 cur_time = int(time.time())
 wandb_config = {
     "project": "tiny_brains",
@@ -66,9 +76,16 @@ trainer.train(
     model=model,
     epochs=epochs,
     optimizer=optimizer,
+    scheduler=lr_scheduler,
     criterion=criterion,
     train_dl=train_loader,
     val_dl=val_loader,
     device=DEVICE,
-    output_path="test.pth"
+    output_path="test.pth",
+    early_stopping_patience=20
 )
+
+# model.load_state_dict(torch.load("test.pth"))
+# model.eval()
+
+

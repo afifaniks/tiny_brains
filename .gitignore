@@ -2,6 +2,7 @@ assets/
 nohup.out
 *.pth
 *.pt
+*.jpg
 venv/
 .idea/
 data/
