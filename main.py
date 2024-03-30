@@ -43,10 +43,10 @@ model = UNet()
 model = model.to(DEVICE)
 
 # Hyperparameters
-lr = 5e-5
+lr = 0.0005
 optimizer = optim.Adam(model.parameters(), lr=lr)
 criterion = nn.MSELoss()
-epochs = 30
+epochs = 300
 cur_time = int(time.time())
 wandb_config = {
     "project": "tiny_brains",
