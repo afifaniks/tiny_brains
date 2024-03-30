@@ -6,6 +6,7 @@ from torchvision.transforms import transforms
 from tqdm import tqdm
 
 from util.wandb_manager import WandbManager
+from util.early_stopping import EarlyStopping
 
 
 class Trainer:
@@ -18,12 +19,15 @@ class Trainer:
               epochs=None,
               optimizer=None,
               criterion=None,
+              scheduler=None,
               train_dl=None,
               val_dl=None,
               device="cpu",
-              output_path=None
+              output_path=None,
+              early_stopping_patience: Optional[int] = None
               ):
         best_loss = float("inf")
+        early_stopping = EarlyStopping(patience=early_stopping_patience, path=output_path) if early_stopping_patience else None
 
         for epoch in range(epochs):
             # Training
@@ -56,10 +60,20 @@ class Trainer:
 
             self._log_epoch(epochs, epoch, train_loss, val_loss)
 
-            if val_loss < best_loss:
+            if early_stopping:
+                early_stopping(val_loss=val_loss, model=model)
+
+                if early_stopping.early_stop:
+                    logger.debug("Early stopping...")
+                    break
+
+            elif val_loss < best_loss:
                 best_loss = val_loss
                 self._save_model(model, output_path)
 
+            if scheduler:
+                scheduler.step(val_loss)
+                logger.debug(f"Current lr: {scheduler.get_last_lr()}")
         if self.wandb_manager:
             self.wandb_manager.finish()
 
