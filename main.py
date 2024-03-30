@@ -4,6 +4,7 @@ from torchvision import transforms
 from torch.utils.data import DataLoader
 import torch.optim as optim
 from loguru import logger
+import time
 
 from dataset.custom_dataset import CustomDataset
 from models.unet import UNet
@@ -46,9 +47,10 @@ lr = 5e-5
 optimizer = optim.Adam(model.parameters(), lr=lr)
 criterion = nn.MSELoss()
 epochs = 30
+cur_time = int(time.time())
 wandb_config = {
     "project": "tiny_brains",
-    "name": f"unet_mri_{lr}",
+    "name": f"unet_mri_{lr}_{cur_time}",
     "config": {
         "learning_rate": lr,
         "architecture": "U-Net",

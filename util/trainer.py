@@ -2,29 +2,30 @@ from typing import Optional
 
 import torch
 from loguru import logger
+from torchvision.transforms import transforms
 from tqdm import tqdm
 
 from util.wandb_manager import WandbManager
 
 
 class Trainer:
-    def __init__(self, wandb_config: Optional[dict] = None) -> None: 
+    def __init__(self, wandb_config: Optional[dict] = None) -> None:
         self.wandb_manager = WandbManager(wandb_config) if wandb_config else None
 
     def train(self,
-              *, 
+              *,
               model=None,
-              epochs=None, 
+              epochs=None,
               optimizer=None,
-              criterion=None, 
-              train_dl=None, 
-              val_dl=None, 
+              criterion=None,
+              train_dl=None,
+              val_dl=None,
               device="cpu",
               output_path=None
-    ):
+              ):
         best_loss = float("inf")
 
-        for epoch in range(epochs):            
+        for epoch in range(epochs):
             # Training
             model.train()
             train_loss = 0.0
@@ -45,27 +46,36 @@ class Trainer:
                 for inputs, targets in tqdm(val_dl, desc="Validation step"):
                     inputs, targets = inputs.to(device), targets.to(device)
                     outputs = model(inputs)
+
+                    if epoch % 5 == 0:
+                        logger.info(f"Saving images at epoch: {epoch}")
+                        self._save_images([targets[0], inputs[0], outputs[0]], [f"{epoch} target", f"{epoch} Input", f"{epoch} Output"])
                     loss = criterion(outputs, targets)
                     val_loss += loss.item() * inputs.size(0)
             val_loss /= len(val_dl.dataset)
 
             self._log_epoch(epochs, epoch, train_loss, val_loss)
-            
+
             if val_loss < best_loss:
                 best_loss = val_loss
                 self._save_model(model, output_path)
-        
+
         if self.wandb_manager:
             self.wandb_manager.finish()
 
     def _log_epoch(self, epochs, epoch, train_loss, val_loss):
-        logger.info(f'Epoch [{epoch+1}/{epochs}], Train Loss: {train_loss}, Val Loss: {val_loss}')
+        logger.info(f'Epoch [{epoch + 1}/{epochs}], Train Loss: {train_loss}, Val Loss: {val_loss}')
         if self.wandb_manager:
-             self.wandb_manager.log({
+            self.wandb_manager.log({
                 "train_loss": float(train_loss),
                 "val_loss": float(val_loss)
             })
-        
+
     def _save_model(self, model, output_path):
         logger.info("Saving new checkpoint...")
-        torch.save(model.state_dict(), output_path)        
+        torch.save(model.state_dict(), output_path)
+
+    def _save_images(self, images, names):
+        for image, name in zip(images, names):
+            image = transforms.ToPILImage()(image)
+            image.save("assets/model_outputs/{}.jpg".format(name))
