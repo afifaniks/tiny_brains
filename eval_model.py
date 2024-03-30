@@ -18,5 +18,7 @@ if __name__ == "__main__":
 
     image = Image.open(image_path).convert('L')
     out = model(transforms.ToTensor()(image).unsqueeze(0))
-    print(out)
+    out_image = transforms.ToPILImage()(out.squeeze(0))
+
+    out_image.save("out_{}".format(image_path.split("/")[-1]))
 
