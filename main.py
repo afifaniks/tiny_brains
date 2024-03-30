@@ -11,7 +11,6 @@ import time
 
 from dataset.custom_dataset import CustomDataset
 from models.unet import UNet
-from models.double_conv import DoubleConv
 from util.trainer import Trainer
 
 
