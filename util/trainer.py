@@ -46,11 +46,7 @@ class Trainer:
 
             # Validation
             model.eval()
-            val_loss = 0.0
-            metric_scores = {}
-            all_validation_targets = []
-            all_validation_preds = []
-
+            val_loss = 0.0            
             with torch.no_grad():
                 for inputs, targets in tqdm(val_dl, desc="Validation step"):
                     inputs, targets = inputs.to(device), targets.to(device)
@@ -62,18 +58,16 @@ class Trainer:
                     loss = criterion(outputs, targets)
                     val_loss += loss.item() * inputs.size(0)
                     
-                    all_validation_targets.extend(targets)
-                    all_validation_preds.extend(outputs)
+                    for metric_name, metric_fn in metrics.items():
+                        metric_fn.update(outputs, targets)
 
             val_loss /= len(val_dl.dataset)
-
-            metric_scores["train_loss"] = train_loss
-            metric_scores["val_loss"] = val_loss
             
+            metric_scores = {"train_loss": train_loss, "val_loss": val_loss}
+
             if metrics:
-                for metric_name, metric_fn in metrics.items():                    
-                    score = metric_fn(torch.stack(all_validation_preds), torch.stack(all_validation_targets))
-                    metric_scores[metric_name] = score
+                for metric_name, metric_fn in metrics.items():
+                    metric_scores[metric_name] = metric_fn.compute().cpu().numpy()
 
             self._log_epoch(epochs, epoch, metric_scores)
 
