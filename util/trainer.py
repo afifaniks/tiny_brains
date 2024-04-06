@@ -74,7 +74,6 @@ class Trainer:
                 for metric_name, metric_fn in metrics.items():                    
                     score = metric_fn(torch.stack(all_validation_preds), torch.stack(all_validation_targets))
                     metric_scores[metric_name] = score
-            
 
             self._log_epoch(epochs, epoch, metric_scores)
 
