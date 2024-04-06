@@ -5,8 +5,8 @@ from loguru import logger
 from torchvision.transforms import transforms
 from tqdm import tqdm
 
-from util.wandb_manager import WandbManager
 from util.early_stopping import EarlyStopping
+from util.wandb_manager import WandbManager
 
 
 class Trainer:
@@ -24,7 +24,8 @@ class Trainer:
               val_dl=None,
               device="cpu",
               output_path=None,
-              early_stopping_patience: Optional[int] = None
+              early_stopping_patience: Optional[int] = None,
+              metrics: Optional[dict] = None
               ):
         best_loss = float("inf")
         early_stopping = EarlyStopping(patience=early_stopping_patience, path=output_path) if early_stopping_patience else None
@@ -46,6 +47,10 @@ class Trainer:
             # Validation
             model.eval()
             val_loss = 0.0
+            metric_scores = {}
+            all_validation_targets = []
+            all_validation_preds = []
+
             with torch.no_grad():
                 for inputs, targets in tqdm(val_dl, desc="Validation step"):
                     inputs, targets = inputs.to(device), targets.to(device)
@@ -56,9 +61,22 @@ class Trainer:
                         self._save_images([targets[0], inputs[0], outputs[0]], [f"{epoch} target", f"{epoch} Input", f"{epoch} Output"])
                     loss = criterion(outputs, targets)
                     val_loss += loss.item() * inputs.size(0)
+                    
+                    all_validation_targets.extend(targets)
+                    all_validation_preds.extend(outputs)
+
             val_loss /= len(val_dl.dataset)
 
-            self._log_epoch(epochs, epoch, train_loss, val_loss)
+            metric_scores["train_loss"] = train_loss
+            metric_scores["val_loss"] = val_loss
+            
+            if metrics:
+                for metric_name, metric_fn in metrics.items():                    
+                    score = metric_fn(torch.stack(all_validation_preds), torch.stack(all_validation_targets))
+                    metric_scores[metric_name] = score
+            
+
+            self._log_epoch(epochs, epoch, metric_scores)
 
             if early_stopping:
                 early_stopping(val_loss=val_loss, model=model)
@@ -77,13 +95,12 @@ class Trainer:
         if self.wandb_manager:
             self.wandb_manager.finish()
 
-    def _log_epoch(self, epochs, epoch, train_loss, val_loss):
-        logger.info(f'Epoch [{epoch + 1}/{epochs}], Train Loss: {train_loss}, Val Loss: {val_loss}')
+    def _log_epoch(self, epochs, epoch, metric_scores):
+        metric_str = [f"{key}: {value}" for key, value in metric_scores.items()]
+        logger.info(f'Epoch [{epoch + 1}/{epochs}], {metric_str}')
+
         if self.wandb_manager:
-            self.wandb_manager.log({
-                "train_loss": float(train_loss),
-                "val_loss": float(val_loss)
-            })
+            self.wandb_manager.log(metric_scores)
 
     def _save_model(self, model, output_path):
         logger.info("Saving new checkpoint...")
