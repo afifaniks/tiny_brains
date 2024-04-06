@@ -9,3 +9,5 @@ data/
 wandb/
 .env
 __pycache__/
+test_train_images/
+test_train_slices/
