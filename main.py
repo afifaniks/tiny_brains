@@ -1,23 +1,26 @@
 import os
 import shutil
+import time
+
 import torch
 import torch.nn as nn
-from torchvision import transforms
-from torch.optim.lr_scheduler import ReduceLROnPlateau
-from torch.utils.data import DataLoader
 import torch.optim as optim
 from loguru import logger
-import time
+from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.utils.data import DataLoader
+from torchmetrics.image import (PeakSignalNoiseRatio,
+                                StructuralSimilarityIndexMeasure,
+                                VisualInformationFidelity)
+from torchvision import transforms
 
 from dataset.custom_dataset import CustomDataset
 from models.unet import UNet
 from util.trainer import Trainer
 
-
-train_image_dir = "assets/train_images/train/data"
-train_label_dir = "assets/train_images/train/gt"
-validation_image_dir = "assets/train_images/val/data"
-validation_label_dir = "assets/train_images/val/gt"
+train_image_dir = "/home/mdafifal.mamun/research/tiny_brains/test_train_images/train/data"
+train_label_dir = "/home/mdafifal.mamun/research/tiny_brains/test_train_images/train/gt"
+validation_image_dir = "/home/mdafifal.mamun/research/tiny_brains/test_train_images/val/data"
+validation_label_dir = "/home/mdafifal.mamun/research/tiny_brains/test_train_images/val/gt"
 
 shutil.rmtree("assets/model_outputs")
 
@@ -53,6 +56,13 @@ model = model.to(DEVICE)
 # Hyperparameters
 lr = 5e-4
 
+# Metrics
+metrics = {
+    "psnr": PeakSignalNoiseRatio().to(DEVICE),
+    "ssim": StructuralSimilarityIndexMeasure(data_range=1.0).to(DEVICE), 
+    "vif": VisualInformationFidelity().to(DEVICE)
+}
+
 optimizer = optim.Adam(model.parameters(), lr=lr)
 lr_scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10, threshold=5e-10)
 criterion = nn.MSELoss()
@@ -60,11 +70,11 @@ epochs = 500
 cur_time = int(time.time())
 wandb_config = {
     "project": "tiny_brains",
-    "name": f"unet_mri_{lr}_{cur_time}",
+    "name": f"unet_mri_{lr}_inverted_contrast_{cur_time}",
     "config": {
         "learning_rate": lr,
         "architecture": "U-Net",
-        "dataset": "xx",
+        "dataset": "Inverted Contrast",
         "epochs": epochs,
     }
 }
@@ -82,7 +92,8 @@ trainer.train(
     val_dl=val_loader,
     device=DEVICE,
     output_path="test.pth",
-    early_stopping_patience=20
+    early_stopping_patience=20,
+    metrics=metrics
 )
 
 # model.load_state_dict(torch.load("test.pth"))
