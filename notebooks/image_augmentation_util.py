@@ -1,6 +1,16 @@
 import numpy as np
 import scipy.ndimage as ndi
 
+def inverse_contrast_3d(image, mask):
+    mask = mask.astype(bool)
+
+    max_intensity = np.max(image[mask])
+
+    inversed_image = image.copy()
+    inversed_image[mask] = max_intensity - image[mask]
+
+    return inversed_image
+
 
 def translate_3d_image(image, translation_range):
     translation_value = np.random.randint(-translation_range, translation_range)
