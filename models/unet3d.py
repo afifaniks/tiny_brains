@@ -3,30 +3,38 @@ import torch.nn as nn
 
 
 class UNet3D(nn.Module):
-    def __init__(self, in_channels=1, out_channels=1):
+    def __init__(self, in_channels=1, out_channels=1, num_filters=32):
         super(UNet3D, self).__init__()
 
         # Contracting Path
-        self.conv1 = self.conv_block(in_channels, 64)
+        self.conv1 = self.conv_block(in_channels, num_filters)
         self.pool1 = nn.MaxPool3d(kernel_size=2)
-        self.conv2 = self.conv_block(64, 128)
+        self.conv2 = self.conv_block(num_filters, num_filters * 2)
         self.pool2 = nn.MaxPool3d(kernel_size=2)
-        self.conv3 = self.conv_block(128, 256)
+        self.conv3 = self.conv_block(num_filters * 2, num_filters * 4)
         self.pool3 = nn.MaxPool3d(kernel_size=2)
-        self.conv4 = self.conv_block(256, 512)
+        self.conv4 = self.conv_block(num_filters * 4, num_filters * 8)
         self.pool4 = nn.MaxPool3d(kernel_size=2)
-        self.conv5 = self.conv_block(512, 1024)
+        self.conv5 = self.conv_block(num_filters * 8, num_filters * 16)
 
         # Expansive Path
-        self.up6 = nn.ConvTranspose3d(1024, 512, kernel_size=2, stride=2)
-        self.conv6 = self.conv_block(1024, 512)
-        self.up7 = nn.ConvTranspose3d(512, 256, kernel_size=2, stride=2)
-        self.conv7 = self.conv_block(512, 256)
-        self.up8 = nn.ConvTranspose3d(256, 128, kernel_size=2, stride=2)
-        self.conv8 = self.conv_block(256, 128)
-        self.up9 = nn.ConvTranspose3d(128, 64, kernel_size=2, stride=2)
-        self.conv9 = self.conv_block(128, 64)
-        self.conv10 = nn.Conv3d(64, out_channels, kernel_size=1)
+        self.up6 = nn.ConvTranspose3d(
+            num_filters * 16, num_filters * 8, kernel_size=2, stride=2
+        )
+        self.conv6 = self.conv_block(num_filters * 16, num_filters * 8)
+        self.up7 = nn.ConvTranspose3d(
+            num_filters * 8, num_filters * 4, kernel_size=2, stride=2
+        )
+        self.conv7 = self.conv_block(num_filters * 8, num_filters * 4)
+        self.up8 = nn.ConvTranspose3d(
+            num_filters * 4, num_filters * 2, kernel_size=2, stride=2
+        )
+        self.conv8 = self.conv_block(num_filters * 4, num_filters * 2)
+        self.up9 = nn.ConvTranspose3d(
+            num_filters * 2, num_filters, kernel_size=2, stride=2
+        )
+        self.conv9 = self.conv_block(num_filters * 2, num_filters)
+        self.conv10 = nn.Conv3d(num_filters, out_channels, kernel_size=1)
 
     def conv_block(self, in_channels, out_channels):
         return nn.Sequential(
