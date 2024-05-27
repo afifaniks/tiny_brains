@@ -13,22 +13,27 @@ class Trainer:
     def __init__(self, wandb_config: Optional[dict] = None) -> None:
         self.wandb_manager = WandbManager(wandb_config) if wandb_config else None
 
-    def train(self,
-              *,
-              model=None,
-              epochs=None,
-              optimizer=None,
-              criterion=None,
-              scheduler=None,
-              train_dl=None,
-              val_dl=None,
-              device="cpu",
-              output_path=None,
-              early_stopping_patience: Optional[int] = None,
-              metrics: Optional[dict] = None
-              ):
+    def train(
+        self,
+        *,
+        model=None,
+        epochs=None,
+        optimizer=None,
+        criterion=None,
+        scheduler=None,
+        train_dl=None,
+        val_dl=None,
+        device="cpu",
+        output_path=None,
+        early_stopping_patience: Optional[int] = None,
+        metrics: Optional[dict] = None,
+    ):
         best_loss = float("inf")
-        early_stopping = EarlyStopping(patience=early_stopping_patience, path=output_path) if early_stopping_patience else None
+        early_stopping = (
+            EarlyStopping(patience=early_stopping_patience, path=output_path)
+            if early_stopping_patience
+            else None
+        )
 
         for epoch in range(epochs):
             # Training
@@ -46,23 +51,26 @@ class Trainer:
 
             # Validation
             model.eval()
-            val_loss = 0.0            
+            val_loss = 0.0
             with torch.no_grad():
                 for inputs, targets in tqdm(val_dl, desc="Validation step"):
                     inputs, targets = inputs.to(device), targets.to(device)
                     outputs = model(inputs)
 
-                    if epoch % 5 == 0:
-                        logger.info(f"Saving images at epoch: {epoch}")
-                        self._save_images([targets[0], inputs[0], outputs[0]], [f"{epoch} target", f"{epoch} Input", f"{epoch} Output"])
+                    # if epoch % 5 == 0:
+                    #     logger.info(f"Saving images at epoch: {epoch}")
+                    #     self._save_images(
+                    #         [targets[0], inputs[0], outputs[0]],
+                    #         [f"{epoch} target", f"{epoch} Input", f"{epoch} Output"],
+                    #     )
                     loss = criterion(outputs, targets)
                     val_loss += loss.item() * inputs.size(0)
-                    
+
                     for metric_name, metric_fn in metrics.items():
                         metric_fn.update(outputs, targets)
 
             val_loss /= len(val_dl.dataset)
-            
+
             metric_scores = {"train_loss": train_loss, "val_loss": val_loss}
 
             if metrics:
@@ -90,7 +98,7 @@ class Trainer:
 
     def _log_epoch(self, epochs, epoch, metric_scores):
         metric_str = [f"{key}: {value}" for key, value in metric_scores.items()]
-        logger.info(f'Epoch [{epoch + 1}/{epochs}], {metric_str}')
+        logger.info(f"Epoch [{epoch + 1}/{epochs}], {metric_str}")
 
         if self.wandb_manager:
             self.wandb_manager.log(metric_scores)
