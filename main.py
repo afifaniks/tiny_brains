@@ -68,7 +68,7 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 # determine if we will be pinning memory during data loading
 PIN_MEMORY = True if DEVICE == "cuda" else False
 
-BATCH_SIZE = 3
+BATCH_SIZE = 2
 
 # Data loaders
 logger.debug("Preparing dataloaders...")
