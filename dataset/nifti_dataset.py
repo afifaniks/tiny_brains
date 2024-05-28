@@ -14,10 +14,16 @@ class NiftiDataset(Dataset):
         self.target_shape = target_shape
         self.crop_or_pad = tio.CropOrPad(target_shape)
 
-        self.image_paths = [os.path.join(image_dir, filename) for filename in os.listdir(image_dir) if
-                            filename.endswith((".nii", ".gz"))]
-        self.label_paths = [os.path.join(label_dir, filename) for filename in os.listdir(label_dir) if
-                            filename.endswith((".nii", "gz"))]
+        self.image_paths = [
+            os.path.join(image_dir, filename)
+            for filename in os.listdir(image_dir)
+            if filename.endswith((".nii", ".gz"))
+        ]
+        self.label_paths = [
+            os.path.join(label_dir, filename)
+            for filename in os.listdir(label_dir)
+            if filename.endswith((".nii", "gz"))
+        ]
 
     def __len__(self):
         return len(self.image_dir)
