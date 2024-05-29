@@ -5,6 +5,7 @@ from loguru import logger
 from torchvision.transforms import transforms
 from tqdm import tqdm
 
+from util import image_util
 from util.early_stopping import EarlyStopping
 from util.wandb_manager import WandbManager
 
@@ -57,12 +58,12 @@ class Trainer:
                     inputs, targets = inputs.to(device), targets.to(device)
                     outputs = model(inputs)
 
-                    # if epoch % 5 == 0:
-                    #     logger.info(f"Saving images at epoch: {epoch}")
-                    #     self._save_images(
-                    #         [targets[0], inputs[0], outputs[0]],
-                    #         [f"{epoch} target", f"{epoch} Input", f"{epoch} Output"],
-                    #     )
+                    if epoch % 5 == 0:
+                        logger.info(f"Saving images at epoch: {epoch}")
+                        self._save_images(
+                            [targets[0], inputs[0], outputs[0]],
+                            [f"{epoch} target", f"{epoch} Input", f"{epoch} Output"],
+                        )
                     loss = criterion(outputs, targets)
                     val_loss += loss.item() * inputs.size(0)
 
@@ -108,6 +109,9 @@ class Trainer:
         torch.save(model.state_dict(), output_path)
 
     def _save_images(self, images, names):
+        model_output_path = "assets/model_outputs"
         for image, name in zip(images, names):
-            image = transforms.ToPILImage()(image)
-            image.save("assets/model_outputs/{}.jpg".format(name))
+            if len(image.shape) == 2:
+                image_util.save_2d_image(image, model_output_path, name)
+            else:
+                image_util.save_3d_image(image, model_output_path, name)
