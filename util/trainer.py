@@ -111,6 +111,7 @@ class Trainer:
     def _save_images(self, images, names):
         model_output_path = "assets/model_outputs"
         for image, name in zip(images, names):
+            image = image.numpy()
             if len(image.shape) == 2:
                 image_util.save_2d_image(image, model_output_path, name)
             else:
