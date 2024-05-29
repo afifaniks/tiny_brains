@@ -1,3 +1,7 @@
+"""
+Usage: python metrics_generator_3d.py --test_image_dir /work/disa_lab/projects/tiny_brains/cc_motion_corrupted_val/ --test_label_dir /work/disa_lab/projects/tiny_brains/source_images_val/ --runs 1 --checkpoint /home/mdafifal.mamun/research/tiny_brains/unet3d.pth
+"""
+
 import argparse
 
 import numpy as np
