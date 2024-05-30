@@ -14,23 +14,40 @@ class NiftiDataset(Dataset):
         self.target_shape = target_shape
         self.crop_or_pad = tio.CropOrPad(target_shape)
 
-        self.image_paths = [
-            os.path.join(image_dir, filename)
+        self.image_filenames = [
+            filename
             for filename in os.listdir(image_dir)
             if filename.endswith((".nii", ".gz"))
         ]
-        self.label_paths = [
-            os.path.join(label_dir, filename)
+        self.label_filenames = [
+            filename
             for filename in os.listdir(label_dir)
             if filename.endswith((".nii", "gz"))
         ]
+
+        # self.image_filenames = [
+        #     os.path.join(image_dir, filename)
+        #     for filename in os.listdir(image_dir)
+        #     if filename.endswith((".nii", ".gz"))
+        # ]
+        # self.label_filenames = [
+        #     os.path.join(label_dir, filename)
+        #     for filename in os.listdir(label_dir)
+        #     if filename.endswith((".nii", "gz"))
+        # ]
 
     def __len__(self):
         return len(self.image_dir)
 
     def __getitem__(self, idx):
-        image = nib.load(self.image_paths[idx])
-        label = nib.load(self.label_paths[idx])
+        image_filename = self.image_filenames[idx]
+        label_filename = self.label_filenames[idx]
+
+        image = nib.load(os.path.join(self.image_dir, image_filename))
+        label = nib.load(os.path.join(self.label_dir, label_filename))
+
+        image_affine = image.affine
+        label_affine = label.affine
 
         # Resize image and mask to target shape
         image = self.crop_or_pad(image)
@@ -51,4 +68,4 @@ class NiftiDataset(Dataset):
             image = self.transform(image)
             label = self.transform(label)
 
-        return image.unsqueeze(0), label.unsqueeze(0)
+        return image.unsqueeze(0), label.unsqueeze(0), image_filename, label_filename, image_affine, label_affine

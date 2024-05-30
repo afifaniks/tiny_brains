@@ -40,7 +40,7 @@ class Trainer:
             # Training
             model.train()
             train_loss = 0.0
-            for inputs, targets in tqdm(train_dl, desc="Training steps"):
+            for inputs, targets, _, _, _, _ in tqdm(train_dl, desc="Training steps"):
                 optimizer.zero_grad()
                 inputs, targets = inputs.to(device), targets.to(device)
                 outputs = model(inputs)
@@ -54,7 +54,7 @@ class Trainer:
             model.eval()
             val_loss = 0.0
             with torch.no_grad():
-                for inputs, targets in tqdm(val_dl, desc="Validation step"):
+                for inputs, targets, image_filenames, label_filenames, image_affines, label_affines in tqdm(val_dl, desc="Validation step"):
                     inputs, targets = inputs.to(device), targets.to(device)
                     outputs = model(inputs)
 
@@ -62,7 +62,8 @@ class Trainer:
                         logger.info(f"Saving images at epoch: {epoch}")
                         self._save_images(
                             [targets[0], inputs[0], outputs[0]],
-                            [f"{epoch} target", f"{epoch} Input", f"{epoch} Output"],
+                            [f"{label_filenames[0]}_{epoch} target", f"{image_filenames[0]}_{epoch} Input", f"{image_filenames[0]}_{epoch} Output"],
+                            affines=[image_affines[0], label_affines[0], image_affines[0]]
                         )
                     loss = criterion(outputs, targets)
                     val_loss += loss.item() * inputs.size(0)
@@ -108,11 +109,14 @@ class Trainer:
         logger.info("Saving new checkpoint...")
         torch.save(model.state_dict(), output_path)
 
-    def _save_images(self, images, names):
+    def _save_images(self, images, names, **kwargs):
         model_output_path = "assets/model_outputs"
-        for image, name in zip(images, names):
-            image = image.detach().cpu().numpy()
-            if len(image.shape) == 2:
+
+        if kwargs.get("affine"):
+            for image, name, affine in zip(images, names, kwargs['affine']):
+                image = image.detach().cpu().numpy()
+                image_util.save_3d_image(image, model_output_path, name, affine)
+
+        else:
+            for image, name in zip(images, names):
                 image_util.save_2d_image(image, model_output_path, name)
-            else:
-                image_util.save_3d_image(image, model_output_path, name)
