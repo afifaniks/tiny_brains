@@ -63,7 +63,7 @@ class Trainer:
                         self._save_images(
                             [targets[0], inputs[0], outputs[0]],
                             [f"{label_filenames[0]}_{epoch} target", f"{image_filenames[0]}_{epoch} Input", f"{image_filenames[0]}_{epoch} Output"],
-                            affines=[image_affines[0], label_affines[0], image_affines[0]]
+                            affines=[label_affines[0], image_affines[0], image_affines[0]]
                         )
                     loss = criterion(outputs, targets)
                     val_loss += loss.item() * inputs.size(0)
@@ -115,6 +115,7 @@ class Trainer:
         if kwargs.get("affines"):
             for image, name, affine in zip(images, names, kwargs['affines']):
                 image = image.detach().cpu().numpy()
+                image = image.squeeze()
                 image_util.save_3d_image(image, model_output_path, name, affine)
 
         else:
