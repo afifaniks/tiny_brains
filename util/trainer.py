@@ -112,8 +112,8 @@ class Trainer:
     def _save_images(self, images, names, **kwargs):
         model_output_path = "assets/model_outputs"
 
-        if kwargs.get("affine"):
-            for image, name, affine in zip(images, names, kwargs['affine']):
+        if kwargs.get("affines"):
+            for image, name, affine in zip(images, names, kwargs['affines']):
                 image = image.detach().cpu().numpy()
                 image_util.save_3d_image(image, model_output_path, name, affine)
 
