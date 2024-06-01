@@ -61,7 +61,11 @@ class Trainer2D:
                         logger.info(f"Saving images at epoch: {epoch}")
                         self._save_images(
                             [targets[0], inputs[0], outputs[0]],
-                            [f"{epoch} target", f"{epoch} Input", f"{epoch} Output"],
+                            [
+                                f"{file_names[0]}_epoch{epoch}_target",
+                                f"{file_names[0]}_epoch{epoch}_input",
+                                f"{file_names[0]}_epoch{epoch}_output",
+                            ],
                         )
                     loss = criterion(outputs, targets)
                     val_loss += loss.item() * inputs.size(0)
