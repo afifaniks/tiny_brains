@@ -9,16 +9,21 @@ class CustomDataset(Dataset):
         self.image_dir = image_dir
         self.transforms = transforms
 
-        self.image_paths = [
-            os.path.join(image_dir, filename)
-            for filename in os.listdir(image_dir)
-            if filename.endswith(".jpg")
-        ]
-        self.label_paths = [
-            os.path.join(label_dir, filename)
-            for filename in os.listdir(label_dir)
-            if filename.endswith(".jpg")
-        ]
+        self.image_paths = sorted(
+            [
+                os.path.join(image_dir, filename)
+                for filename in os.listdir(image_dir)
+                if filename.endswith(".png")
+            ]
+        )
+
+        self.label_paths = sorted(
+            [
+                os.path.join(label_dir, filename)
+                for filename in os.listdir(label_dir)
+                if filename.endswith(".png")
+            ]
+        )
 
         if len(self.image_paths) != len(self.label_paths):
             raise Exception("Number of images and labels do not match")
@@ -32,6 +37,8 @@ class CustomDataset(Dataset):
         image_path = self.image_paths[idx]
         label_path = self.label_paths[idx]
 
+        file_name = os.path.splitext(os.path.basename(image_path))[0]
+
         # load the image and label from disk, convert it to grayscale
         image = Image.open(image_path).convert("L")
         label = Image.open(label_path).convert("L")
@@ -43,4 +50,4 @@ class CustomDataset(Dataset):
             label = self.transforms(label)
 
         # return a tuple of the images
-        return image, label, image_path
+        return image, label, file_name
