@@ -1,4 +1,5 @@
 import os
+import numpy as np
 
 from PIL import Image
 from torch.utils.data import Dataset
@@ -42,6 +43,17 @@ class CustomDataset(Dataset):
         # load the image and label from disk, convert it to grayscale
         image = Image.open(image_path).convert("L")
         label = Image.open(label_path).convert("L")
+
+        image = np.array(image)
+        label = np.array(label)
+
+        # Normaize between 0 to 1
+        image = (image - np.min(image)) / (np.max(image) - np.min(image))
+        label = (label - np.min(label)) / (np.max(label) - np.min(label))
+
+        # Convert to float32
+        image = image.astype(np.float32)
+        label = label.astype(np.float32)
 
         # check to see if we are applying any transformations
         if self.transforms is not None:
