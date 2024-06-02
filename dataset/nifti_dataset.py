@@ -25,17 +25,6 @@ class NiftiDataset(Dataset):
             if filename.endswith((".nii", "gz"))
         ]
 
-        # self.image_filenames = [
-        #     os.path.join(image_dir, filename)
-        #     for filename in os.listdir(image_dir)
-        #     if filename.endswith((".nii", ".gz"))
-        # ]
-        # self.label_filenames = [
-        #     os.path.join(label_dir, filename)
-        #     for filename in os.listdir(label_dir)
-        #     if filename.endswith((".nii", "gz"))
-        # ]
-
     def __len__(self):
         return len(self.image_dir)
 

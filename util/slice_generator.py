@@ -6,6 +6,8 @@ import nibabel as nib
 import numpy as np
 from tqdm import tqdm
 
+from concurrent.futures import ThreadPoolExecutor
+
 
 def generate_2d_slices(source_dir, corrupted_dir):
     source_2d = os.path.join(source_dir, "2d_slices")
@@ -20,7 +22,7 @@ def generate_2d_slices(source_dir, corrupted_dir):
     for source, corrupted in tqdm(
         zip(source_3d_images, corrupted_3d_images), total=len(source_3d_images)
     ):
-        assert source.split("/")[-1] == corrupted.split("/")[-1]
+        assert os.path.basename(source) == os.path.basename(corrupted)
 
         output_file_name = os.path.splitext(os.path.basename(source))[0]
         print(f"Processing: {source}")
@@ -52,8 +54,10 @@ destination_gt_val_data_dir = "/work/disa_lab/projects/tiny_brains/unet_segmenta
 destination_motion_train_data_dir = "/work/disa_lab/projects/tiny_brains/unet_segmentation/unet_segmentation/train/cc_motion_corrupted_train"
 destination_motion_val_data_dir = "/work/disa_lab/projects/tiny_brains/unet_segmentation/unet_segmentation/val/cc_motion_corrupted_val"
 
+executor = ThreadPoolExecutor()
+
 print("Generate slices for train data...")
-generate_2d_slices(destination_gt_train_data_dir, destination_motion_train_data_dir)
+executor.submit(generate_2d_slices, destination_gt_train_data_dir, destination_motion_train_data_dir)
 
 print("Generate slices for validation data...")
-generate_2d_slices(destination_gt_val_data_dir, destination_motion_val_data_dir)
+executor.submit(generate_2d_slices, destination_gt_val_data_dir, destination_motion_val_data_dir)
