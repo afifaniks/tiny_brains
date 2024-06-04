@@ -10,8 +10,8 @@ from concurrent.futures import ThreadPoolExecutor
 
 
 def generate_2d_slices(source_dir, corrupted_dir):
-    source_2d = os.path.join(source_dir, "2d_slices_sagittal")
-    corrupted_2d = os.path.join(corrupted_dir, "2d_slices_sagittal")
+    source_2d = os.path.join(source_dir, "2d_slices")
+    corrupted_2d = os.path.join(corrupted_dir, "2d_slices")
 
     os.makedirs(source_2d, exist_ok=True)
     os.makedirs(corrupted_2d, exist_ok=True)
@@ -30,20 +30,24 @@ def generate_2d_slices(source_dir, corrupted_dir):
         source_img = nib.load(source).get_fdata()
         corrupted_img = nib.load(corrupted).get_fdata()
 
-        for i in range(source_img.shape[0]):
-            source_slice_2d = source_img[i, :, :]
-            corrupted_slice_2d = corrupted_img[i, :, :]
+        for i in range(source_img.shape[2]):
+            source_slice_2d = source_img[:, :, i]
+            corrupted_slice_2d = corrupted_img[:, :, i]
 
             if np.any(source_slice_2d != 0):
                 plt.imsave(
                     f"{source_2d}/{output_file_name}_slice_{i}.png",
                     source_slice_2d,
                     cmap="gray",
+                    vmin=0,
+                    vmax=1
                 )
                 plt.imsave(
                     f"{corrupted_2d}/{output_file_name}_slice_{i}.png",
                     corrupted_slice_2d,
                     cmap="gray",
+                    vmin=0,
+                    vmax=1
                 )
 
 
