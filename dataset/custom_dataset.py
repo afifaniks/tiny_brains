@@ -9,8 +9,8 @@ class CustomDataset(Dataset):
     def __init__(self, image_dir, label_dir, transforms, partial_dataset=False):
         self.image_dir = image_dir
         self.transforms = transforms
-        self.lower_slice_limit = 115
-        self.upper_slice_limit = 145
+        self.lower_slice_limit = 170
+        self.upper_slice_limit = 200
 
         self.image_paths = sorted(
             [
@@ -63,8 +63,12 @@ class CustomDataset(Dataset):
         label = np.array(label)
 
         # Normaize between 0 to 1
-        image = (image - np.min(image)) / (np.max(image) - np.min(image))
-        label = (label - np.min(label)) / (np.max(label) - np.min(label))
+        # image = (image - np.min(image)) / (np.max(image) - np.min(image))
+        # label = (label - np.min(label)) / (np.max(label) - np.min(label))
+
+        # Normaize between 0 to 1 (when the image is in 0-255)
+        image = image / 255
+        label = label / 255
 
         # Convert to float32
         image = image.astype(np.float32)
