@@ -10,8 +10,8 @@ from concurrent.futures import ThreadPoolExecutor
 
 
 def generate_2d_slices(source_dir, corrupted_dir):
-    source_2d = os.path.join(source_dir, "2d_slices")
-    corrupted_2d = os.path.join(corrupted_dir, "2d_slices")
+    source_2d = os.path.join(source_dir, "2d_slices_sagittal")
+    corrupted_2d = os.path.join(corrupted_dir, "2d_slices_sagittal")
 
     os.makedirs(source_2d, exist_ok=True)
     os.makedirs(corrupted_2d, exist_ok=True)
@@ -30,9 +30,9 @@ def generate_2d_slices(source_dir, corrupted_dir):
         source_img = nib.load(source).get_fdata()
         corrupted_img = nib.load(corrupted).get_fdata()
 
-        for i in range(source_img.shape[2]):
-            source_slice_2d = source_img[:, :, i]
-            corrupted_slice_2d = corrupted_img[:, :, i]
+        for i in range(source_img.shape[0]):
+            source_slice_2d = source_img[i, :, :]
+            corrupted_slice_2d = corrupted_img[i, :, :]
 
             if np.any(source_slice_2d != 0):
                 plt.imsave(
@@ -48,11 +48,11 @@ def generate_2d_slices(source_dir, corrupted_dir):
 
 
 # For Afif
-destination_gt_train_data_dir = "/work/disa_lab/projects/tiny_brains/unet_segmentation/unet_segmentation/train/source_images_train"
-destination_gt_val_data_dir = "/work/disa_lab/projects/tiny_brains/unet_segmentation/unet_segmentation/val/source_images_val"
+destination_gt_train_data_dir = "../assets/source_images_train"
+destination_gt_val_data_dir = "../assets/source_images_val"
 
-destination_motion_train_data_dir = "/work/disa_lab/projects/tiny_brains/unet_segmentation/unet_segmentation/train/cc_motion_corrupted_train"
-destination_motion_val_data_dir = "/work/disa_lab/projects/tiny_brains/unet_segmentation/unet_segmentation/val/cc_motion_corrupted_val"
+destination_motion_train_data_dir = "../assets/cc_motion_corrupted_train"
+destination_motion_val_data_dir = "../assets/cc_motion_corrupted_val"
 
 executor = ThreadPoolExecutor()
 
