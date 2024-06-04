@@ -3,12 +3,14 @@ import numpy as np
 
 from PIL import Image
 from torch.utils.data import Dataset
-
+from loguru import logger
 
 class CustomDataset(Dataset):
-    def __init__(self, image_dir, label_dir, transforms):
+    def __init__(self, image_dir, label_dir, transforms, partial_dataset=False):
         self.image_dir = image_dir
         self.transforms = transforms
+        self.lower_slice_limit = 115
+        self.upper_slice_limit = 145
 
         self.image_paths = sorted(
             [
@@ -26,8 +28,21 @@ class CustomDataset(Dataset):
             ]
         )
 
+        if partial_dataset:
+            self._filter_slices()
+
         if len(self.image_paths) != len(self.label_paths):
             raise Exception("Number of images and labels do not match")
+
+    def _filter_slices(self):
+        self.image_paths = [image_path for image_path in self.image_paths if self.lower_slice_limit <= self._get_slice_number(image_path) <= self.upper_slice_limit]
+        self.label_paths = [label_path for label_path in self.label_paths if self.lower_slice_limit <= self._get_slice_number(label_path) <= self.upper_slice_limit]
+
+
+
+    def _get_slice_number(self, image_name: str):
+        last_underscore_split_string = image_name.split("_")[-1]
+        return int(last_underscore_split_string.split(".")[0])
 
     def __len__(self):
         # return the number of total samples contained in the dataset
