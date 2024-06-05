@@ -43,10 +43,10 @@ class Trainer2D:
                 optimizer.zero_grad()
                 inputs, targets = inputs.to(device), targets.to(device)
                 outputs = model(inputs)
-                loss = criterion(outputs, targets)
+                loss = criterion(outputs, targets) * inputs.size(0) * inputs.size(1) * inputs.size(2) * inputs.size(3)
                 loss.backward()
                 optimizer.step()
-                train_loss += loss.item() * inputs.size(0)
+                train_loss += loss.item()
             train_loss /= len(train_dl.dataset)
 
             # Validation
@@ -67,8 +67,8 @@ class Trainer2D:
                                 f"{file_names[0]}_epoch{epoch}_output",
                             ],
                         )
-                    loss = criterion(outputs, targets)
-                    val_loss += loss.item() * inputs.size(0)
+                    loss = criterion(outputs, targets) * inputs.size(0) * inputs.size(1) * inputs.size(2) * inputs.size(3)
+                    val_loss += loss.item()
 
                     for metric_name, metric_fn in metrics.items():
                         metric_fn.update(outputs, targets)
