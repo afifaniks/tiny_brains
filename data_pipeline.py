@@ -172,8 +172,14 @@ for image in tqdm(source_images, total=len(source_images)):
 
 
 print("\n\nCREATING SPLIT...")
+all_images = [
+    f for f in os.listdir(augmented_source_destination_dir) if f.endswith(".nii")
+]
 train_images, val_images = train_test_split(
-    source_images, train_size=0.8, random_state=42, shuffle=True
+    all_images,
+    train_size=0.8,
+    random_state=42,
+    shuffle=True,
 )
 
 print("Train size", len(train_images), "Val size", len(val_images))
