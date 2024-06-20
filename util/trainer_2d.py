@@ -5,12 +5,11 @@ from loguru import logger
 from torchvision.transforms import transforms
 from tqdm import tqdm
 
-from util import image_util
 from util.early_stopping import EarlyStopping
 from util.wandb_manager import WandbManager
 
 
-class Trainer:
+class Trainer2D:
     def __init__(self, wandb_config: Optional[dict] = None) -> None:
         self.wandb_manager = WandbManager(wandb_config) if wandb_config else None
 
@@ -40,21 +39,21 @@ class Trainer:
             # Training
             model.train()
             train_loss = 0.0
-            for inputs, targets, _, _, _, _ in tqdm(train_dl, desc="Training steps"):
+            for inputs, targets, file_names in tqdm(train_dl, desc="Training steps"):
                 optimizer.zero_grad()
                 inputs, targets = inputs.to(device), targets.to(device)
                 outputs = model(inputs)
-                loss = criterion(outputs, targets)
+                loss = criterion(outputs, targets) * inputs.size(0) * inputs.size(1) * inputs.size(2) * inputs.size(3)
                 loss.backward()
                 optimizer.step()
-                train_loss += loss.item() * inputs.size(0)
+                train_loss += loss.item()
             train_loss /= len(train_dl.dataset)
 
             # Validation
             model.eval()
             val_loss = 0.0
             with torch.no_grad():
-                for inputs, targets, image_filenames, label_filenames, image_affines, label_affines in tqdm(val_dl, desc="Validation step"):
+                for inputs, targets, file_names in tqdm(val_dl, desc="Validation step"):
                     inputs, targets = inputs.to(device), targets.to(device)
                     outputs = model(inputs)
 
@@ -62,11 +61,14 @@ class Trainer:
                         logger.info(f"Saving images at epoch: {epoch}")
                         self._save_images(
                             [targets[0], inputs[0], outputs[0]],
-                            [f"{label_filenames[0]}_{epoch} target", f"{image_filenames[0]}_{epoch} Input", f"{image_filenames[0]}_{epoch} Output"],
-                            affines=[label_affines[0], image_affines[0], image_affines[0]]
+                            [
+                                f"{file_names[0]}_epoch{epoch}_target",
+                                f"{file_names[0]}_epoch{epoch}_input",
+                                f"{file_names[0]}_epoch{epoch}_output",
+                            ],
                         )
-                    loss = criterion(outputs, targets)
-                    val_loss += loss.item() * inputs.size(0)
+                    loss = criterion(outputs, targets) * inputs.size(0) * inputs.size(1) * inputs.size(2) * inputs.size(3)
+                    val_loss += loss.item()
 
                     for metric_name, metric_fn in metrics.items():
                         metric_fn.update(outputs, targets)
@@ -109,15 +111,7 @@ class Trainer:
         logger.info("Saving new checkpoint...")
         torch.save(model.state_dict(), output_path)
 
-    def _save_images(self, images, names, **kwargs):
-        model_output_path = "assets/model_outputs"
-
-        if kwargs.get("affines"):
-            for image, name, affine in zip(images, names, kwargs['affines']):
-                image = image.detach().cpu().numpy()
-                image = image.squeeze()
-                image_util.save_3d_image(image, model_output_path, name, affine)
-
-        else:
-            for image, name in zip(images, names):
-                image_util.save_2d_image(image, model_output_path, name)
+    def _save_images(self, images, names):
+        for image, name in zip(images, names):
+            image = transforms.ToPILImage()(image)
+            image.save("assets/model_outputs/{}.jpg".format(name))

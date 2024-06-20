@@ -1,3 +1,7 @@
+"""
+Usage: python metrics_generator_3d.py --test_image_dir /work/disa_lab/projects/tiny_brains/cc_motion_corrupted_val/ --test_label_dir /work/disa_lab/projects/tiny_brains/source_images_val/ --runs 1 --checkpoint /home/mdafifal.mamun/research/tiny_brains/unet3d.pth
+"""
+
 import argparse
 
 import numpy as np
@@ -13,8 +17,9 @@ from torchmetrics.image import (
 from torchvision import transforms
 from tqdm import tqdm
 
-from dataset.custom_dataset import CustomDataset
-from models.unet import UNet
+from dataset.nifti_dataset import NiftiDataset
+from models.unet3d import UNet3D
+from util.image_util import save_3d_image
 
 
 def parse_arguments():
@@ -40,6 +45,12 @@ def parse_arguments():
     return parser.parse_args()
 
 
+def _save_images(images, names):
+    model_output_path = "assets/model_outputs"
+    for image, name in zip(images, names):
+        save_3d_image(image, model_output_path, name)
+
+
 args = parse_arguments()
 
 TRANSFORMATIONS = transforms.Compose(
@@ -49,13 +60,19 @@ TRANSFORMATIONS = transforms.Compose(
 )
 
 # Prepare dataset
+image_shape = (256, 288, 288)
 logger.debug(f"Preparing datasets...")
-test_dataset = CustomDataset(args.test_image_dir, args.test_label_dir, TRANSFORMATIONS)
+test_dataset = NiftiDataset(
+    args.test_image_dir,
+    args.test_label_dir,
+    target_shape=image_shape,
+    transform=TRANSFORMATIONS,
+)
 logger.debug(f"Number of samples: {len(test_dataset)}")
 
 # Training parameters
 device = "cuda" if torch.cuda.is_available() else "cpu"
-BATCH_SIZE = 50
+BATCH_SIZE = 2
 
 # Data loaders
 logger.debug(f"Preparing dataloaders...")
@@ -64,25 +81,18 @@ test_loader = DataLoader(
 )
 
 # Model
-model = UNet()
+model = UNet3D()
 model = model.to(device)
 
 # Metrics
 metrics = {
     "psnr": PeakSignalNoiseRatio().to(device),
     "ssim": StructuralSimilarityIndexMeasure(data_range=1.0).to(device),
-    "vif": VisualInformationFidelity().to(device),
+    # "vif": VisualInformationFidelity().to(device),
 }
 
 num_runs = args.runs
 all_scores = []
-
-
-def _save_images(images, names):
-    for image, name in zip(images, names):
-        image = transforms.ToPILImage()(image)
-        image.save("assets/test_outputs/{}.jpg".format(name))
-
 
 for run in range(num_runs):
     logger.debug(f"Run {run + 1}/{num_runs}")
@@ -94,33 +104,32 @@ for run in range(num_runs):
     model.eval()
     val_loss = 0.0
 
-    step = 0
-
     with torch.no_grad():
-        for inputs, targets, file_names in tqdm(test_loader, desc="Test step"):
+        for step_idx, (inputs, targets) in tqdm(
+            enumerate(test_loader), desc="Test step"
+        ):
             inputs, targets = inputs.to(device), targets.to(device)
             outputs = model(inputs)
-
-            if step % 10 == 0:
-                _save_images(
-                    [targets[0], inputs[0], outputs[0]],
-                    [
-                        f"{file_names[0]}_target",
-                        f"{file_names[0]}_input",
-                        f"{file_names[0]}_output",
-                    ],
-                )
 
             # Compute loss
             criterion = nn.MSELoss()
             loss = criterion(outputs, targets)
             val_loss += loss.item() * inputs.size(0)
 
-            step += 1
-
             # Compute metrics
             for metric_name, metric_fn in metrics.items():
                 metric_fn.update(outputs, targets)
+
+            if step_idx % 5 == 0:
+                logger.info(f"Saving images at step: {step_idx}")
+                _save_images(
+                    [
+                        targets[0].cpu().numpy(),
+                        inputs[0].cpu().numpy(),
+                        outputs[0].cpu().numpy(),
+                    ],
+                    [f"{step_idx} target", f"{step_idx} Input", f"{step_idx} Output"],
+                )
 
         val_loss /= len(test_loader.dataset)
 

@@ -1,9 +1,21 @@
 import numpy as np
 import scipy.ndimage as ndi
+import nibabel as nib
+
+def inverse_contrast_3d(image, mask):
+    mask = mask.astype(bool)
+
+    max_intensity = np.max(image[mask])
+
+    inversed_image = image.copy()
+    inversed_image[mask] = max_intensity - image[mask]
+
+    return inversed_image
 
 
 def translate_3d_image(image, translation_range):
     translation_value = np.random.randint(-translation_range, translation_range)
+    print(image.shape)
     translated_image = np.roll(image, translation_value, axis=(0, 1, 2))
 
     print(f"Translated for {translation_value} pixels")
@@ -86,3 +98,32 @@ def augment_image(image, thresh_translation, thresh_rotation_angle, slice_number
     aggregated_scan_image = get_spatial_image_from_fourier_image(f_aggregated_scan)
 
     return aggregated_scan_image
+
+
+def motion_corrupt_3d(image, thresh_translation, thresh_rotation_angle):
+    image_array = image.get_fdata()
+
+    augmented_3d_image_1 = augment_3d_image(image_array, thresh_translation, thresh_rotation_angle)
+    augmented_3d_image_2 = augment_3d_image(augmented_3d_image_1, thresh_translation, thresh_rotation_angle)
+    augmented_3d_image_3 = augment_3d_image(augmented_3d_image_2, thresh_translation, thresh_rotation_angle)
+
+    augmented_3d_image = np.zeros_like(image_array)
+
+    for slice in range(image_array.shape[2]):
+        f_original_image_slice = get_fourier_image(image_array[:, :, slice])
+        f_augmented_3d_image_1_slice = get_fourier_image(augmented_3d_image_1[:, :, slice])
+        f_augmented_3d_image_2_slice = get_fourier_image(augmented_3d_image_2[:, :, slice])
+        f_augmented_3d_image_3_slice = get_fourier_image(augmented_3d_image_3[:, :, slice])
+
+        f_aggregated_scan = f_original_image_slice.copy()
+        f_aggregated_scan[50:90, :] = f_augmented_3d_image_1_slice[50:90, :]
+        f_aggregated_scan[160:185, :] = f_augmented_3d_image_2_slice[160:185, :]
+        f_aggregated_scan[220: 245, :] = f_augmented_3d_image_3_slice[220:245, :]
+
+        aggregated_scan_image = get_spatial_image_from_fourier_image(f_aggregated_scan)
+
+        augmented_3d_image[:, :, slice] = aggregated_scan_image
+
+    resultant_image = nib.Nifti1Image(augmented_3d_image, affine=image.affine)
+
+    return resultant_image
