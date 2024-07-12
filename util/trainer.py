@@ -2,10 +2,9 @@ from typing import Optional
 
 import torch
 from loguru import logger
-from torchvision.transforms import transforms
 from tqdm import tqdm
 
-from util import image_util
+from util import util, image_util
 from util.early_stopping import EarlyStopping
 from util.wandb_manager import WandbManager
 
@@ -43,7 +42,10 @@ class Trainer:
             for inputs, targets, _, _, _, _ in tqdm(train_dl, desc="Training steps"):
                 optimizer.zero_grad()
                 inputs, targets = inputs.to(device), targets.to(device)
+                util.print_gpu_memory_usage()
                 outputs = model(inputs)
+                logger.debug("GPU Memory Usage")
+                util.print_gpu_memory_usage()
                 loss = criterion(outputs, targets)
                 loss.backward()
                 optimizer.step()
@@ -112,12 +114,7 @@ class Trainer:
     def _save_images(self, images, names, **kwargs):
         model_output_path = "assets/model_outputs"
 
-        if kwargs.get("affines"):
-            for image, name, affine in zip(images, names, kwargs['affines']):
-                image = image.detach().cpu().numpy()
-                image = image.squeeze()
-                image_util.save_3d_image(image, model_output_path, name, affine)
-
-        else:
-            for image, name in zip(images, names):
-                image_util.save_2d_image(image, model_output_path, name)
+        for image, name, affine in zip(images, names, kwargs['affines']):
+            image = image.detach().cpu().numpy()
+            image = image.squeeze()
+            image_util.save_3d_image(image, model_output_path, name, affine)

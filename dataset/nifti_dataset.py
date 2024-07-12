@@ -26,7 +26,7 @@ class NiftiDataset(Dataset):
         ]
 
     def __len__(self):
-        return len(self.image_dir)
+        return len(self.image_filenames)
 
     def __getitem__(self, idx):
         image_filename = self.image_filenames[idx]

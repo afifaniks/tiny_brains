@@ -12,12 +12,12 @@ from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 
 source_mask_dir = (
-    "/work/disa_lab/projects/tiny_brains/unet_segmentation/unet_segmentation/WM-GM-CSF"
+    "assets/WM-GM-CSF"
 )
 source_data_dir = (
-    "/work/disa_lab/projects/tiny_brains/unet_segmentation/unet_segmentation/Images"
+    "assets/Images"
 )
-destination_root = "/work/disa_lab/projects/tiny_brains/final/"
+destination_root = "assets/final/"
 
 assert len(os.listdir(source_data_dir)) == len(os.listdir(source_mask_dir))
 

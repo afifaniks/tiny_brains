@@ -14,17 +14,18 @@ from torchmetrics.image import (
     VisualInformationFidelity,
 )
 from torchvision import transforms
+from torchsummary import summary
 
-from dataset.custom_dataset import CustomDataset
-from models.unet import UNet
-from util.trainer_2d import Trainer2D
+from dataset.nifti_dataset import NiftiDataset
+from models.unet3d import UNet3D
+from util.trainer import Trainer
 
-train_image_dir = "/work/disa_lab/projects/tiny_brains/unet_segmentation/unet_segmentation/train/cc_motion_corrupted_train/2d_slices"
-train_label_dir = "/work/disa_lab/projects/tiny_brains/unet_segmentation/unet_segmentation/train/source_images_train/2d_slices"
-validation_image_dir = "/work/disa_lab/projects/tiny_brains/unet_segmentation/unet_segmentation/val/cc_motion_corrupted_val/2d_slices"
-validation_label_dir = "/work/disa_lab/projects/tiny_brains/unet_segmentation/unet_segmentation/val/source_images_val/2d_slices"
+train_image_dir = "assets/cc_dataset_ghosted/train/motion_corrupted"
+train_label_dir = "assets/cc_dataset_ghosted/train/ground_truth"
+validation_image_dir = "assets/cc_dataset_ghosted/val/motion_corrupted"
+validation_label_dir = "assets/cc_dataset_ghosted/val/ground_truth"
 
-shutil.rmtree("assets/model_outputs")
+shutil.rmtree("assets/model_outputs", ignore_errors=True)
 
 os.mkdir("assets/model_outputs")
 
@@ -38,10 +39,12 @@ TRANSFORMATIONS = transforms.Compose(
 
 # Prepare dataset
 logger.debug(f"Preparing datasets...")
-train_dataset = CustomDataset(train_image_dir, train_label_dir, TRANSFORMATIONS)
+target_shape = (256, 288, 288)
+
+train_dataset = NiftiDataset(train_image_dir, train_label_dir, target_shape, TRANSFORMATIONS)
 print(f"Train dataset size: {len(train_dataset)}")
-test_dataset = CustomDataset(
-    validation_image_dir, validation_label_dir, TRANSFORMATIONS
+test_dataset = NiftiDataset(
+    validation_image_dir, validation_label_dir, target_shape, TRANSFORMATIONS
 )
 print(f"Test dataset size: {len(test_dataset)}")
 
@@ -50,7 +53,7 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 # determine if we will be pinning memory during data loading
 PIN_MEMORY = True if DEVICE == "cuda" else False
 
-BATCH_SIZE = 50
+BATCH_SIZE = 1
 
 # Data loaders
 logger.debug(f"Preparing dataloaders...")
@@ -70,8 +73,10 @@ val_loader = DataLoader(
 )
 
 # Model
-model = UNet()
+model = UNet3D()
 model = model.to(DEVICE)
+
+logger.debug(f'Model Summary: {summary(model, input_size=(1, 256, 288, 288))}')
 
 # Hyperparameters
 lr = 5e-4
@@ -101,7 +106,7 @@ wandb_config = {
     },
 }
 
-trainer = Trainer2D(wandb_config=wandb_config)
+trainer = Trainer(wandb_config=wandb_config)
 
 logger.debug("Starting training...")
 trainer.train(
