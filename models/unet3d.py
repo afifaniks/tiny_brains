@@ -3,7 +3,7 @@ import torch.nn as nn
 
 
 class UNet3D(nn.Module):
-    def __init__(self, in_channels=1, out_channels=1, num_filters=32):
+    def __init__(self, in_channels=1, out_channels=1, num_filters=64):
         super(UNet3D, self).__init__()
 
         # Contracting Path
@@ -14,14 +14,14 @@ class UNet3D(nn.Module):
         self.conv3 = self.conv_block(num_filters * 2, num_filters * 4)
         self.pool3 = nn.MaxPool3d(kernel_size=2)
         self.conv4 = self.conv_block(num_filters * 4, num_filters * 8)
-        self.pool4 = nn.MaxPool3d(kernel_size=2)
-        self.conv5 = self.conv_block(num_filters * 8, num_filters * 16)
+        # self.pool4 = nn.MaxPool3d(kernel_size=2)
+        # self.conv5 = self.conv_block(num_filters * 8, num_filters * 16)
 
         # Expansive Path
-        self.up6 = nn.ConvTranspose3d(
-            num_filters * 16, num_filters * 8, kernel_size=2, stride=2
-        )
-        self.conv6 = self.conv_block(num_filters * 16, num_filters * 8)
+        # self.up6 = nn.ConvTranspose3d(
+        #     num_filters * 16, num_filters * 8, kernel_size=2, stride=2
+        # )
+        # self.conv6 = self.conv_block(num_filters * 16, num_filters * 8)
         self.up7 = nn.ConvTranspose3d(
             num_filters * 8, num_filters * 4, kernel_size=2, stride=2
         )
@@ -39,6 +39,9 @@ class UNet3D(nn.Module):
     def conv_block(self, in_channels, out_channels):
         return nn.Sequential(
             nn.Conv3d(in_channels, out_channels, kernel_size=3, padding=1),
+            nn.BatchNorm3d(out_channels),
+            nn.ReLU(inplace=True),
+
             nn.Conv3d(out_channels, out_channels, kernel_size=3, padding=1),
             nn.BatchNorm3d(out_channels),
             nn.ReLU(inplace=True),
@@ -53,14 +56,14 @@ class UNet3D(nn.Module):
         conv3 = self.conv3(pool2)
         pool3 = self.pool3(conv3)
         conv4 = self.conv4(pool3)
-        pool4 = self.pool4(conv4)
-        conv5 = self.conv5(pool4)
+        # pool4 = self.pool4(conv4)
+        # conv5 = self.conv5(pool4)
 
         # Expansive Path
-        up6 = self.up6(conv5)
-        up6 = torch.cat([up6, conv4], dim=1)
-        conv6 = self.conv6(up6)
-        up7 = self.up7(conv6)
+        # up6 = self.up6(conv5)
+        # up6 = torch.cat([up6, conv4], dim=1)
+        # conv6 = self.conv6(up6)
+        up7 = self.up7(conv4)
         up7 = torch.cat([up7, conv3], dim=1)
         conv7 = self.conv7(up7)
         up8 = self.up8(conv7)
