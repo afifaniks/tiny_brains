@@ -44,10 +44,7 @@ class Trainer:
             for inputs, targets, _, _, _, _ in tqdm(train_dl, desc="Training steps"):
                 optimizer.zero_grad()
                 inputs, targets = inputs.to(device), targets.to(device)
-                util.print_gpu_memory_usage()
                 outputs = model(inputs)
-                logger.debug("GPU Memory Usage")
-                util.print_gpu_memory_usage()
                 loss = criterion(outputs, targets)
                 loss.backward()
                 optimizer.step()
