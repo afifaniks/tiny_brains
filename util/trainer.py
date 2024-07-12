@@ -35,6 +35,8 @@ class Trainer:
             else None
         )
 
+        val_files = ["CC0078", "CC0200", "CC0285"]
+
         for epoch in range(epochs):
             # Training
             model.train()
@@ -60,7 +62,7 @@ class Trainer:
                     inputs, targets = inputs.to(device), targets.to(device)
                     outputs = model(inputs)
 
-                    if epoch % 5 == 0:
+                    if epoch % 5 == 0 or any(val_file in image_filenames[0] for val_file in val_files):
                         logger.info(f"Saving images at epoch: {epoch}")
                         self._save_images(
                             [targets[0], inputs[0], outputs[0]],

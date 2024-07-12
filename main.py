@@ -97,7 +97,7 @@ epochs = 200
 cur_time = int(time.time())
 wandb_config = {
     "project": "tiny_brains",
-    "name": f"unet_mri_{lr}_2d_images_{cur_time}",
+    "name": f"unet_mri_{lr}_3d_images_{cur_time}",
     "config": {
         "learning_rate": lr,
         "architecture": "U-Net",
