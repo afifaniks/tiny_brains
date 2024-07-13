@@ -85,7 +85,7 @@ lr = 5e-4
 metrics = {
     "psnr": PeakSignalNoiseRatio().to(DEVICE),
     "ssim": StructuralSimilarityIndexMeasure(data_range=1.0).to(DEVICE),
-    "vif": VisualInformationFidelity().to(DEVICE),
+    # "vif": VisualInformationFidelity().to(DEVICE),
 }
 
 optimizer = optim.Adam(model.parameters(), lr=lr)
