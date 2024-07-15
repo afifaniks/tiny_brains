@@ -122,7 +122,7 @@ trainer.train(
     train_dl=train_loader,
     val_dl=val_loader,
     device=DEVICE,
-    output_path="unet2d.pth",
+    output_path="unet3d.pth",
     early_stopping_patience=20,
     metrics=metrics,
 )
