@@ -94,6 +94,8 @@ epochs = 200
 # lr_scheduler = ReduceLROnPlateau(
 #     optimizer, mode="min", factor=0.1, patience=10, threshold=5e-10
 # )
+total_steps = len(train_loader) * epochs
+warmup_steps = int(0.025 * total_steps)
 lr_scheduler = transformers.get_linear_schedule_with_warmup(
     optimizer, num_warmup_steps=5, num_training_steps=epochs
 )
