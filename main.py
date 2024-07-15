@@ -5,6 +5,7 @@ import time
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import transformers
 from loguru import logger
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
@@ -79,7 +80,7 @@ model = model.to(DEVICE)
 logger.debug(f'Model Summary: {summary(model, input_size=(1, 256, 288, 288))}')
 
 # Hyperparameters
-lr = 5e-4
+lr = 1e-4
 
 # Metrics
 metrics = {
@@ -89,19 +90,22 @@ metrics = {
 }
 
 optimizer = optim.Adam(model.parameters(), lr=lr)
-lr_scheduler = ReduceLROnPlateau(
-    optimizer, mode="min", factor=0.1, patience=10, threshold=5e-10
+epochs = 200
+# lr_scheduler = ReduceLROnPlateau(
+#     optimizer, mode="min", factor=0.1, patience=10, threshold=5e-10
+# )
+lr_scheduler = transformers.get_linear_schedule_with_warmup(
+    optimizer, num_warmup_steps=5, num_training_steps=epochs
 )
 criterion = nn.MSELoss()
-epochs = 200
 cur_time = int(time.time())
 wandb_config = {
     "project": "tiny_brains",
     "name": f"unet_mri_{lr}_3d_images_{cur_time}",
     "config": {
         "learning_rate": lr,
-        "architecture": "U-Net",
-        "dataset": "Inverted Contrast",
+        "architecture": "U-Net3d (32->256)",
+        "dataset": "Augmented Neonatal Image",
         "epochs": epochs,
     },
 }
