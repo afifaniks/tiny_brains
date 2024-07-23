@@ -45,7 +45,7 @@ class Trainer:
                 optimizer.zero_grad()
                 inputs, targets = inputs.to(device), targets.to(device)
                 outputs = model(inputs)
-                loss = criterion(outputs, targets) * inputs.size(2) * inputs.size(3) * inputs.size(4)
+                loss = criterion(outputs, targets)
                 loss.backward()
                 optimizer.step()
                 train_loss += loss.item() * inputs.size(0)
@@ -66,7 +66,7 @@ class Trainer:
                             [f"{label_filenames[0]}_{epoch} target", f"{image_filenames[0]}_{epoch} Input", f"{image_filenames[0]}_{epoch} Output"],
                             affines=[label_affines[0], image_affines[0], image_affines[0]]
                         )
-                    loss = criterion(outputs, targets) * inputs.size(2) * inputs.size(3) * inputs.size(4)
+                    loss = criterion(outputs, targets)
                     val_loss += loss.item() * inputs.size(0)
 
                     for metric_name, metric_fn in metrics.items():

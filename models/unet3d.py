@@ -14,14 +14,14 @@ class UNet3D(nn.Module):
         self.conv3 = self.conv_block(num_filters * 2, num_filters * 4)
         self.pool3 = nn.MaxPool3d(kernel_size=2)
         self.conv4 = self.conv_block(num_filters * 4, num_filters * 8)
-        self.pool4 = nn.MaxPool3d(kernel_size=2)
-        self.conv5 = self.conv_block(num_filters * 8, num_filters * 16)
+        # self.pool4 = nn.MaxPool3d(kernel_size=2)
+        # self.conv5 = self.conv_block(num_filters * 8, num_filters * 16)
 
         # Expansive Path
-        self.up6 = nn.ConvTranspose3d(
-            num_filters * 16, num_filters * 8, kernel_size=2, stride=2
-        )
-        self.conv6 = self.conv_block(num_filters * 16, num_filters * 8)
+        # self.up6 = nn.ConvTranspose3d(
+        #     num_filters * 16, num_filters * 8, kernel_size=2, stride=2
+        # )
+        # self.conv6 = self.conv_block(num_filters * 16, num_filters * 8)
         self.up7 = nn.ConvTranspose3d(
             num_filters * 8, num_filters * 4, kernel_size=2, stride=2
         )
