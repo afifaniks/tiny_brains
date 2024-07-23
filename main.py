@@ -77,7 +77,7 @@ val_loader = DataLoader(
 model = UNet3D()
 model = model.to(DEVICE)
 
-logger.debug(f'Model Summary: {summary(model, input_size=(1, 256, 288, 288))}')
+logger.debug(f'Model Summary: {summary(model, input_size=(1, 256, 288, 288), batch_size=BATCH_SIZE)}')
 
 # Hyperparameters
 lr = 1e-4
