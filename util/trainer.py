@@ -1,3 +1,4 @@
+import copy
 from typing import Optional
 
 import torch
@@ -14,19 +15,19 @@ class Trainer:
         self.wandb_manager = WandbManager(wandb_config) if wandb_config else None
 
     def train(
-        self,
-        *,
-        model=None,
-        epochs=None,
-        optimizer=None,
-        criterion=None,
-        scheduler=None,
-        train_dl=None,
-        val_dl=None,
-        device="cpu",
-        output_path=None,
-        early_stopping_patience: Optional[int] = None,
-        metrics: Optional[dict] = None,
+            self,
+            *,
+            model=None,
+            epochs=None,
+            optimizer=None,
+            criterion=None,
+            scheduler=None,
+            train_dl=None,
+            val_dl=None,
+            device="cpu",
+            output_path=None,
+            early_stopping_patience: Optional[int] = None,
+            metrics: Optional[dict] = None,
     ):
         best_loss = float("inf")
         early_stopping = (
@@ -34,6 +35,11 @@ class Trainer:
             if early_stopping_patience
             else None
         )
+
+        train_metrics = copy.deepcopy(metrics)
+        val_metrics = copy.deepcopy(metrics)
+
+        metric_scores = {}
 
         val_files = ["CC0078", "CC0200", "CC0285"]
 
@@ -49,13 +55,20 @@ class Trainer:
                 loss.backward()
                 optimizer.step()
                 train_loss += loss.item() * inputs.size(0)
+                for metric_name, metric_fn in train_metrics.items():
+                    metric_fn.update(outputs, targets)
+
             train_loss /= len(train_dl.dataset)
+            if metrics:
+                for metric_name, metric_fn in train_metrics.items():
+                    metric_scores["train_" + metric_name] = metric_fn.compute().cpu().numpy()
 
             # Validation
             model.eval()
             val_loss = 0.0
             with torch.no_grad():
-                for inputs, targets, image_filenames, label_filenames, image_affines, label_affines in tqdm(val_dl, desc="Validation step"):
+                for inputs, targets, image_filenames, label_filenames, image_affines, label_affines in tqdm(val_dl,
+                                                                                                            desc="Validation step"):
                     inputs, targets = inputs.to(device), targets.to(device)
                     outputs = model(inputs)
 
@@ -63,24 +76,32 @@ class Trainer:
                         logger.info(f"Saving images at epoch: {epoch}")
                         self._save_images(
                             [targets[0], inputs[0], outputs[0]],
-                            [f"{label_filenames[0]}_{epoch} target", f"{image_filenames[0]}_{epoch} Input", f"{image_filenames[0]}_{epoch} Output"],
+                            [f"{label_filenames[0]}_{epoch} target", f"{image_filenames[0]}_{epoch} Input",
+                             f"{image_filenames[0]}_{epoch} Output"],
                             affines=[label_affines[0], image_affines[0], image_affines[0]]
                         )
                     loss = criterion(outputs, targets)
                     val_loss += loss.item() * inputs.size(0)
 
-                    for metric_name, metric_fn in metrics.items():
+                    for metric_name, metric_fn in val_metrics.items():
                         metric_fn.update(outputs, targets)
 
             val_loss /= len(val_dl.dataset)
 
-            metric_scores = {"train_loss": train_loss, "val_loss": val_loss}
-
             if metrics:
-                for metric_name, metric_fn in metrics.items():
-                    metric_scores[metric_name] = metric_fn.compute().cpu().numpy()
+                for metric_name, metric_fn in val_metrics.items():
+                    metric_scores["val_" + metric_name] = metric_fn.compute().cpu().numpy()
+
+            metric_scores["train_loss"] = train_loss
+            metric_scores["val_loss"] = val_loss
 
             self._log_epoch(epochs, epoch, metric_scores)
+
+            if metrics:
+                for metric_name, metric_fn in train_metrics.items():
+                    metric_fn.reset()
+                for metric_name, metric_fn in val_metrics.items():
+                    metric_fn.reset()
 
             if early_stopping:
                 early_stopping(val_loss=val_loss, model=model)
