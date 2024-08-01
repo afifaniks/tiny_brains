@@ -80,7 +80,7 @@ model = model.to(DEVICE)
 logger.debug(f'Model Summary: {summary(model, input_size=(1, 256, 288, 288), batch_size=BATCH_SIZE)}')
 
 # Hyperparameters
-lr = 1e-4
+lr = 1e-3
 
 # Metrics
 metrics = {
@@ -97,17 +97,17 @@ epochs = 200
 total_steps = len(train_loader) * epochs
 warmup_steps = int(0.025 * total_steps)
 lr_scheduler = transformers.get_linear_schedule_with_warmup(
-    optimizer, num_warmup_steps=5, num_training_steps=epochs
+    optimizer, num_warmup_steps=warmup_steps, num_training_steps=epochs
 )
 criterion = nn.MSELoss()
 cur_time = int(time.time())
 wandb_config = {
     "project": "tiny_brains",
-    "name": f"unet_mri_{lr}_3d_images_{cur_time}",
+    "name": f"unet_mri_{lr}_3d_images_linear_scheduler_{cur_time}",
     "config": {
         "learning_rate": lr,
         "architecture": "U-Net3d (32->256)",
-        "dataset": "Augmented Neonatal Image",
+        "dataset": "Augmented Adult Image",
         "epochs": epochs,
     },
 }
