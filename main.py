@@ -99,7 +99,7 @@ epochs = 200
 total_steps = len(train_loader) * epochs
 warmup_steps = int(0.025 * total_steps)
 lr_scheduler = transformers.get_linear_schedule_with_warmup(
-    optimizer, num_warmup_steps=warmup_steps, num_training_steps=epochs
+    optimizer, num_warmup_steps=warmup_steps, num_training_steps=total_steps
 )
 criterion = nn.MSELoss()
 cur_time = int(time.time())
@@ -114,7 +114,8 @@ wandb_config = {
     },
 }
 
-trainer = Trainer(wandb_config=wandb_config)
+# trainer = Trainer(wandb_config=wandb_config)
+trainer = Trainer()
 
 logger.debug("Starting training...")
 trainer.train(
