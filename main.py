@@ -19,6 +19,7 @@ from torchsummary import summary
 
 from dataset.nifti_dataset import NiftiDataset
 from models.unet3d import UNet3D
+from models.unet_monai import Unet3DMonai
 from util.trainer import Trainer
 
 train_image_dir = "assets/cc_dataset_ghosted/train/motion_corrupted"
@@ -75,6 +76,7 @@ val_loader = DataLoader(
 
 # Model
 model = UNet3D()
+# model = Unet3DMonai()
 model = model.to(DEVICE)
 
 logger.debug(f'Model Summary: {summary(model, input_size=(1, 256, 288, 288), batch_size=BATCH_SIZE)}')
