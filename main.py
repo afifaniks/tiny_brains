@@ -27,9 +27,11 @@ train_label_dir = "assets/cc_dataset_ghosted/train/ground_truth"
 validation_image_dir = "assets/cc_dataset_ghosted/val/motion_corrupted"
 validation_label_dir = "assets/cc_dataset_ghosted/val/ground_truth"
 
-shutil.rmtree("assets/model_outputs", ignore_errors=True)
+data_output_path = "assets/model_outputs"
 
-os.mkdir("assets/model_outputs")
+shutil.rmtree(data_output_path, ignore_errors=True)
+
+os.mkdir(data_output_path)
 
 TRANSFORMATIONS = transforms.Compose(
     [
@@ -96,11 +98,14 @@ epochs = 200
 # lr_scheduler = ReduceLROnPlateau(
 #     optimizer, mode="min", factor=0.1, patience=10, threshold=5e-10
 # )
-total_steps = len(train_loader) * epochs
-warmup_steps = int(0.025 * total_steps)
-lr_scheduler = transformers.get_linear_schedule_with_warmup(
-    optimizer, num_warmup_steps=warmup_steps, num_training_steps=total_steps
-)
+# total_steps = len(train_loader) * epochs
+# warmup_steps = int(0.025 * total_steps)
+
+# logger.debug(f"Warmup steps: {warmup_steps}, Total Steps: {total_steps}")
+
+# lr_scheduler = transformers.get_linear_schedule_with_warmup(
+#     optimizer, num_warmup_steps=warmup_steps, num_training_steps=total_steps
+# )
 criterion = nn.MSELoss()
 cur_time = int(time.time())
 wandb_config = {
@@ -122,12 +127,13 @@ trainer.train(
     model=model,
     epochs=epochs,
     optimizer=optimizer,
-    scheduler=lr_scheduler,
+    scheduler=None,
     criterion=criterion,
     train_dl=train_loader,
     val_dl=val_loader,
     device=DEVICE,
-    output_path="unet3d.pth",
+    model_output_path="unet3d.pth",
+    data_output_path=data_output_path,
     early_stopping_patience=20,
     metrics=metrics,
 )

@@ -25,7 +25,8 @@ class Trainer:
             train_dl=None,
             val_dl=None,
             device="cpu",
-            output_path=None,
+            model_output_path=None,
+            data_output_path=None,
             early_stopping_patience: Optional[int] = None,
             metrics: Optional[dict] = None,
     ):
@@ -78,6 +79,7 @@ class Trainer:
                             [targets[0], inputs[0], outputs[0]],
                             [f"{label_filenames[0]}_{epoch} target", f"{image_filenames[0]}_{epoch} Input",
                              f"{image_filenames[0]}_{epoch} Output"],
+                            data_output_path,
                             affines=[label_affines[0], image_affines[0], image_affines[0]]
                         )
                     loss = criterion(outputs, targets)
@@ -112,7 +114,7 @@ class Trainer:
 
             elif val_loss < best_loss:
                 best_loss = val_loss
-                self._save_model(model, output_path)
+                self._save_model(model, model_output_path)
 
             if scheduler:
                 scheduler.step(val_loss)
@@ -131,10 +133,9 @@ class Trainer:
         logger.info("Saving new checkpoint...")
         torch.save(model.state_dict(), output_path)
 
-    def _save_images(self, images, names, **kwargs):
-        model_output_path = "assets/model_outputs"
+    def _save_images(self, images, names, output_path, **kwargs):
 
         for image, name, affine in zip(images, names, kwargs['affines']):
             image = image.detach().cpu().numpy()
             image = image.squeeze()
-            image_util.save_3d_image(image, model_output_path, name, affine)
+            image_util.save_3d_image(image, output_path, name, affine)
