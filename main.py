@@ -7,6 +7,7 @@ import torch.nn as nn
 import torch.optim as optim
 import transformers
 from loguru import logger
+from monai.losses import SSIMLoss
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
 from torchmetrics.image import (
@@ -106,7 +107,8 @@ epochs = 200
 # lr_scheduler = transformers.get_linear_schedule_with_warmup(
 #     optimizer, num_warmup_steps=warmup_steps, num_training_steps=total_steps
 # )
-criterion = nn.MSELoss()
+# criterion = nn.MSELoss()
+criterion = SSIMLoss(spatial_dims=3)
 cur_time = int(time.time())
 wandb_config = {
     "project": "tiny_brains",
