@@ -110,7 +110,7 @@ criterion = nn.MSELoss()
 cur_time = int(time.time())
 wandb_config = {
     "project": "tiny_brains",
-    "name": f"unet_mri_{lr}_3d_images_linear_scheduler_{cur_time}",
+    "name": f"unet_{lr}_3d_images_linear_scheduler_{cur_time}",
     "config": {
         "learning_rate": lr,
         "architecture": "U-Net3d (32->256)",

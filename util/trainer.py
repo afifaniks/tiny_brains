@@ -32,7 +32,7 @@ class Trainer:
     ):
         best_loss = float("inf")
         early_stopping = (
-            EarlyStopping(patience=early_stopping_patience, path=output_path)
+            EarlyStopping(patience=early_stopping_patience, path=model_output_path)
             if early_stopping_patience
             else None
         )
