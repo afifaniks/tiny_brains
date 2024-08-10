@@ -108,7 +108,7 @@ epochs = 200
 #     optimizer, num_warmup_steps=warmup_steps, num_training_steps=total_steps
 # )
 # criterion = nn.MSELoss()
-criterion = SSIMLoss(spatial_dims=3)
+criterion = SSIMLoss(spatial_dims=3, data_range=1.0)
 cur_time = int(time.time())
 wandb_config = {
     "project": "tiny_brains",

@@ -52,7 +52,7 @@ class Trainer:
                 optimizer.zero_grad()
                 inputs, targets = inputs.to(device), targets.to(device)
                 outputs = model(inputs)
-                loss = criterion(outputs, targets, data_range=1.0)
+                loss = criterion(outputs, targets)
                 loss.backward()
                 optimizer.step()
                 train_loss += loss.item() * inputs.size(0)
