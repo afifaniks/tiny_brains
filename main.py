@@ -107,8 +107,8 @@ epochs = 200
 # lr_scheduler = transformers.get_linear_schedule_with_warmup(
 #     optimizer, num_warmup_steps=warmup_steps, num_training_steps=total_steps
 # )
-# criterion = nn.MSELoss()
-criterion = SSIMLoss(spatial_dims=3, data_range=1.0)
+mse_criterion = nn.MSELoss()
+ssim_criterion = SSIMLoss(spatial_dims=3, data_range=1.0)
 cur_time = int(time.time())
 wandb_config = {
     "project": "tiny_brains",
@@ -130,7 +130,7 @@ trainer.train(
     epochs=epochs,
     optimizer=optimizer,
     scheduler=None,
-    criterion=criterion,
+    criterions=[mse_criterion, ssim_criterion],
     train_dl=train_loader,
     val_dl=val_loader,
     device=DEVICE,

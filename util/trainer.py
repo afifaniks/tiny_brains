@@ -20,7 +20,7 @@ class Trainer:
             model=None,
             epochs=None,
             optimizer=None,
-            criterion=None,
+            criterions=None,
             scheduler=None,
             train_dl=None,
             val_dl=None,
@@ -52,10 +52,17 @@ class Trainer:
                 optimizer.zero_grad()
                 inputs, targets = inputs.to(device), targets.to(device)
                 outputs = model(inputs)
-                loss = criterion(outputs, targets)
-                loss.backward()
+
+                sum_loss = criterions[0](outputs, targets)
+
+                if len(criterions) > 1:
+                    for criterion in criterions[1:]:
+                        loss = criterion(outputs, targets)
+                        sum_loss += loss
+
+                sum_loss.backward()
                 optimizer.step()
-                train_loss += loss.item() * inputs.size(0)
+                train_loss += sum_loss.item() * inputs.size(0)
                 for metric_name, metric_fn in train_metrics.items():
                     metric_fn.update(outputs, targets)
 
@@ -82,8 +89,14 @@ class Trainer:
                             data_output_path,
                             affines=[label_affines[0], image_affines[0], image_affines[0]]
                         )
-                    loss = criterion(outputs, targets)
-                    val_loss += loss.item() * inputs.size(0)
+                    sum_loss = criterions[0](outputs, targets)
+
+                    if len(criterions) > 1:
+                        for criterion in criterions[1:]:
+                            loss = criterion(outputs, targets)
+                            sum_loss += loss
+
+                    val_loss += sum_loss.item() * inputs.size(0)
 
                     for metric_name, metric_fn in val_metrics.items():
                         metric_fn.update(outputs, targets)
