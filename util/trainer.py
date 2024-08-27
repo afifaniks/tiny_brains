@@ -42,7 +42,7 @@ class Trainer:
 
         metric_scores = {}
 
-        val_files = ["CC0078", "CC0200", "CC0285"]
+        val_files = ["CC0006", "CC016", "CC0031", "CC0125", "CC0273"]
 
         for epoch in range(epochs):
             # Training
