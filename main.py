@@ -21,6 +21,7 @@ from torchsummary import summary
 from dataset.nifti_dataset import NiftiDataset
 from models.unet3d import UNet3D
 from models.unet_monai import Unet3DMonai
+from util.model_util import TotalVariationLoss
 from util.trainer import Trainer
 
 train_image_dir = "assets/cc_dataset_ghosted/train/motion_corrupted"
@@ -109,6 +110,7 @@ epochs = 200
 # )
 mse_criterion = nn.MSELoss()
 ssim_criterion = SSIMLoss(spatial_dims=3, data_range=1.0)
+tv_criterion = TotalVariationLoss()
 cur_time = int(time.time())
 wandb_config = {
     "project": "tiny_brains",
@@ -130,7 +132,7 @@ trainer.train(
     epochs=epochs,
     optimizer=optimizer,
     scheduler=None,
-    criterions=[mse_criterion, ssim_criterion],
+    criterions=[mse_criterion, ssim_criterion, tv_criterion],
     train_dl=train_loader,
     val_dl=val_loader,
     device=DEVICE,
