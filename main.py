@@ -97,6 +97,8 @@ metrics = {
 
 optimizer = optim.Adam(model.parameters(), lr=lr)
 epochs = 200
+
+# scheduler
 # lr_scheduler = ReduceLROnPlateau(
 #     optimizer, mode="min", factor=0.1, patience=10, threshold=5e-10
 # )
@@ -108,9 +110,17 @@ epochs = 200
 # lr_scheduler = transformers.get_linear_schedule_with_warmup(
 #     optimizer, num_warmup_steps=warmup_steps, num_training_steps=total_steps
 # )
+
+#losses
 mse_criterion = nn.MSELoss()
 ssim_criterion = SSIMLoss(spatial_dims=3, data_range=1.0)
 tv_criterion = TotalVariationLoss()
+losses = {
+    "mse": mse_criterion,
+    "ssim": ssim_criterion,
+    "tv": tv_criterion
+}
+
 cur_time = int(time.time())
 wandb_config = {
     "project": "tiny_brains",
@@ -132,7 +142,7 @@ trainer.train(
     epochs=epochs,
     optimizer=optimizer,
     scheduler=None,
-    criterions=[mse_criterion, ssim_criterion, tv_criterion],
+    criterions=losses,
     train_dl=train_loader,
     val_dl=val_loader,
     device=DEVICE,

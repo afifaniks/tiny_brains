@@ -41,6 +41,8 @@ class Trainer:
         val_metrics = copy.deepcopy(metrics)
 
         metric_scores = {}
+        train_losses = {}
+        val_losses = {}
 
         val_files = ["CC0006", "CC016", "CC0031", "CC0125", "CC0273"]
 
@@ -53,23 +55,34 @@ class Trainer:
                 inputs, targets = inputs.to(device), targets.to(device)
                 outputs = model(inputs)
 
-                sum_loss = criterions[0](outputs, targets)
+                for loss_name, loss_fn in criterions:
+                    train_losses[loss_name] = loss_fn(outputs, targets)
 
-                if len(criterions) > 1:
-                    for criterion in criterions[1:]:
-                        loss = criterion(outputs, targets)
-                        sum_loss += loss
+                sum_loss = torch.sum(train_losses.values())
+
+                # sum_loss = criterions[0](outputs, targets)
+                #
+                # if len(criterions) > 1:
+                #     for criterion in criterions[1:]:
+                #         loss = criterion(outputs, targets)
+                #         sum_loss += loss
 
                 sum_loss.backward()
                 optimizer.step()
                 train_loss += sum_loss.item() * inputs.size(0)
+                train_losses = {loss_name: loss.item() + (loss.item() * inputs.size(0)) for loss_name, loss in train_losses.items()}
+
                 for metric_name, metric_fn in train_metrics.items():
                     metric_fn.update(outputs, targets)
 
             train_loss /= len(train_dl.dataset)
+            train_losses = {loss_name: loss.item() / len(train_dl.dataset) for loss_name, loss in train_losses.items()}
+
             if metrics:
                 for metric_name, metric_fn in train_metrics.items():
                     metric_scores["train_" + metric_name] = metric_fn.compute().cpu().numpy()
+                for loss_name, loss in train_losses:
+                    metric_scores["train_" + loss_name] = loss
 
             # Validation
             model.eval()
@@ -89,23 +102,33 @@ class Trainer:
                             data_output_path,
                             affines=[label_affines[0], image_affines[0], image_affines[0]]
                         )
-                    sum_loss = criterions[0](outputs, targets)
 
-                    if len(criterions) > 1:
-                        for criterion in criterions[1:]:
-                            loss = criterion(outputs, targets)
-                            sum_loss += loss
+                    for loss_name, loss_fn in criterions:
+                        val_losses[loss_name] = loss_fn(outputs, targets)
+
+                    sum_loss = torch.sum(val_losses.values())
+
+                    # sum_loss = criterions[0](outputs, targets)
+                    #
+                    # if len(criterions) > 1:
+                    #     for criterion in criterions[1:]:
+                    #         loss = criterion(outputs, targets)
+                    #         sum_loss += loss
 
                     val_loss += sum_loss.item() * inputs.size(0)
+                    val_losses = {loss_name: loss.item() + (loss.item() * inputs.size(0)) for loss_name, loss in val_losses.items()}
 
                     for metric_name, metric_fn in val_metrics.items():
                         metric_fn.update(outputs, targets)
 
             val_loss /= len(val_dl.dataset)
+            val_losses = {loss_name: loss.item() / len(val_dl.dataset) for loss_name, loss in val_losses.items()}
 
             if metrics:
                 for metric_name, metric_fn in val_metrics.items():
                     metric_scores["val_" + metric_name] = metric_fn.compute().cpu().numpy()
+                for loss_name, loss in val_losses:
+                    metric_scores["val_" + loss_name] = loss
 
             metric_scores["train_loss"] = train_loss
             metric_scores["val_loss"] = val_loss
