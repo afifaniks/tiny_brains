@@ -1,5 +1,7 @@
 import torch
 import torch.nn as nn
+from torchmetrics.image import StructuralSimilarityIndexMeasure
+
 
 class CustomMseLoss(nn.Module):
     def __init__(self):
@@ -7,6 +9,18 @@ class CustomMseLoss(nn.Module):
 
     def forward(self, output, target):
         loss = torch.mean((output - target) ** 2)
+        return loss
+
+
+class CustomSsimLoss(nn.Module):
+    def __init__(self):
+        super(CustomSsimLoss, self).__init__()
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.ssim_loss = StructuralSimilarityIndexMeasure(data_range=1.0).to(self.device)
+
+    def forward(self, output, target):
+        loss = 1 - self.ssim_loss(output, target)
+
         return loss
 
 
@@ -26,5 +40,3 @@ class TotalVariationLoss(nn.Module):
         loss = tv_output - tv_target
 
         return loss
-
-
