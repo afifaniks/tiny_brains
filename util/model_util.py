@@ -13,10 +13,10 @@ class CustomMseLoss(nn.Module):
 
 
 class CustomSsimLoss(nn.Module):
-    def __init__(self):
+    def __init__(self, data_range=1.0):
         super(CustomSsimLoss, self).__init__()
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.ssim_loss = StructuralSimilarityIndexMeasure(data_range=1.0).to(self.device)
+        self.ssim_loss = StructuralSimilarityIndexMeasure(data_range=data_range).to(self.device)
 
     def forward(self, output, target):
         loss = 1 - self.ssim_loss(output, target)
