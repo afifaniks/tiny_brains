@@ -37,6 +37,6 @@ class TotalVariationLoss(nn.Module):
         tv_output = self.total_variation(output)
         tv_target = self.total_variation(target)
 
-        loss = tv_output - tv_target
+        loss = torch.abs(tv_output - tv_target)
 
         return loss
