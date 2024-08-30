@@ -12,6 +12,25 @@ class CustomMseLoss(nn.Module):
         return loss
 
 
+class MaskedMSELoss(nn.Module):
+    def __init__(self):
+        super(MaskedMSELoss, self).__init__()
+
+    def forward(self, output, target, mask):
+        mask = mask.float()
+
+        masked_output = output * mask
+        masked_target = target * mask
+
+        loss = ((masked_output - masked_target) ** 2).sum() / mask.sum()
+
+        print(loss)
+
+        return loss
+
+
+
+
 class CustomSsimLoss(nn.Module):
     def __init__(self, data_range=1.0):
         super(CustomSsimLoss, self).__init__()

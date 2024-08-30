@@ -2,6 +2,7 @@ import os
 
 import nibabel as nib
 import numpy as np
+import torch
 import torchio as tio
 from torch.utils.data import Dataset
 
@@ -51,6 +52,10 @@ class NiftiDataset(Dataset):
         # Convert to float32
         image = image.astype(np.float32)
         label = label.astype(np.float32)
+
+        # Manual Transform to Tensor
+        image = torch.Tensor(image)
+        label = torch.Tensor(label)
 
         # Apply transformations if provided
         if self.transform:
