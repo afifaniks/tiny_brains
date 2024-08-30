@@ -51,14 +51,17 @@ class Trainer:
             model.train()
             train_loss = 0.0
             for inputs, targets, _, _, _, _ in tqdm(train_dl, desc="Training steps"):
+                sum_loss = 0.0
                 optimizer.zero_grad()
                 inputs, targets = inputs.to(device), targets.to(device)
                 outputs = model(inputs)
 
                 for loss_name, loss_fn in criterions.items():
-                    train_losses[loss_name] = loss_fn(outputs, targets)
+                    loss = loss_fn(outputs, targets)
+                    sum_loss += loss
+                    train_losses[loss_name] = loss
 
-                sum_loss = torch.sum(train_losses.values())
+                # sum_loss = torch.sum(train_losses.values())
 
                 # sum_loss = criterions[0](outputs, targets)
                 #
@@ -70,7 +73,8 @@ class Trainer:
                 sum_loss.backward()
                 optimizer.step()
                 train_loss += sum_loss.item() * inputs.size(0)
-                train_losses = {loss_name: loss.item() + (loss.item() * inputs.size(0)) for loss_name, loss in train_losses.items()}
+                train_losses = {loss_name: loss.item() + (loss.item() * inputs.size(0)) for loss_name, loss in
+                                train_losses.items()}
 
                 for metric_name, metric_fn in train_metrics.items():
                     metric_fn.update(outputs, targets)
@@ -90,6 +94,7 @@ class Trainer:
             with torch.no_grad():
                 for inputs, targets, image_filenames, label_filenames, image_affines, label_affines in tqdm(val_dl,
                                                                                                             desc="Validation step"):
+                    sum_loss = 0.0
                     inputs, targets = inputs.to(device), targets.to(device)
                     outputs = model(inputs)
 
@@ -104,9 +109,11 @@ class Trainer:
                         )
 
                     for loss_name, loss_fn in criterions.items():
-                        val_losses[loss_name] = loss_fn(outputs, targets)
+                        loss = loss_fn(outputs, targets)
+                        sum_loss += loss
+                        val_losses[loss_name] = loss
 
-                    sum_loss = torch.sum(val_losses.values())
+                    # sum_loss = torch.sum(val_losses.values())
 
                     # sum_loss = criterions[0](outputs, targets)
                     #
@@ -116,7 +123,8 @@ class Trainer:
                     #         sum_loss += loss
 
                     val_loss += sum_loss.item() * inputs.size(0)
-                    val_losses = {loss_name: loss.item() + (loss.item() * inputs.size(0)) for loss_name, loss in val_losses.items()}
+                    val_losses = {loss_name: loss.item() + (loss.item() * inputs.size(0)) for loss_name, loss in
+                                  val_losses.items()}
 
                     for metric_name, metric_fn in val_metrics.items():
                         metric_fn.update(outputs, targets)
