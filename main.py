@@ -21,7 +21,7 @@ from torchsummary import summary
 from dataset.nifti_dataset import NiftiDataset
 from models.unet3d import UNet3D
 from models.unet_monai import Unet3DMonai
-from util.model_util import TotalVariationLoss
+from util.model_util import TotalVariationLoss, CustomSsimLoss
 from util.trainer import Trainer
 
 train_image_dir = "assets/cc_dataset_ghosted/train/motion_corrupted"
@@ -113,7 +113,8 @@ epochs = 200
 
 #losses
 mse_criterion = nn.MSELoss()
-ssim_criterion = SSIMLoss(spatial_dims=3, data_range=1.0)
+# ssim_criterion = SSIMLoss(spatial_dims=3, data_range=1.0)
+ssim_criterion = CustomSsimLoss(data_range=1.0)
 tv_criterion = TotalVariationLoss()
 losses = {
     "mse": mse_criterion,
