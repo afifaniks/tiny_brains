@@ -55,7 +55,7 @@ class Trainer:
                 inputs, targets = inputs.to(device), targets.to(device)
                 outputs = model(inputs)
 
-                for loss_name, loss_fn in criterions:
+                for loss_name, loss_fn in criterions.items():
                     train_losses[loss_name] = loss_fn(outputs, targets)
 
                 sum_loss = torch.sum(train_losses.values())
@@ -103,7 +103,7 @@ class Trainer:
                             affines=[label_affines[0], image_affines[0], image_affines[0]]
                         )
 
-                    for loss_name, loss_fn in criterions:
+                    for loss_name, loss_fn in criterions.items():
                         val_losses[loss_name] = loss_fn(outputs, targets)
 
                     sum_loss = torch.sum(val_losses.values())
