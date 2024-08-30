@@ -80,7 +80,7 @@ class Trainer:
                     metric_fn.update(outputs, targets)
 
             train_loss /= len(train_dl.dataset)
-            train_losses = {loss_name: loss.item() / len(train_dl.dataset) for loss_name, loss in train_losses.items()}
+            train_losses = {loss_name: loss / len(train_dl.dataset) for loss_name, loss in train_losses.items()}
 
             if metrics:
                 for metric_name, metric_fn in train_metrics.items():
@@ -130,7 +130,7 @@ class Trainer:
                         metric_fn.update(outputs, targets)
 
             val_loss /= len(val_dl.dataset)
-            val_losses = {loss_name: loss.item() / len(val_dl.dataset) for loss_name, loss in val_losses.items()}
+            val_losses = {loss_name: loss / len(val_dl.dataset) for loss_name, loss in val_losses.items()}
 
             if metrics:
                 for metric_name, metric_fn in val_metrics.items():
