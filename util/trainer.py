@@ -85,7 +85,7 @@ class Trainer:
             if metrics:
                 for metric_name, metric_fn in train_metrics.items():
                     metric_scores["train_" + metric_name] = metric_fn.compute().cpu().numpy()
-                for loss_name, loss in train_losses:
+                for loss_name, loss in train_losses.items():
                     metric_scores["train_" + loss_name] = loss
 
             # Validation
@@ -135,7 +135,7 @@ class Trainer:
             if metrics:
                 for metric_name, metric_fn in val_metrics.items():
                     metric_scores["val_" + metric_name] = metric_fn.compute().cpu().numpy()
-                for loss_name, loss in val_losses:
+                for loss_name, loss in val_losses.items():
                     metric_scores["val_" + loss_name] = loss
 
             metric_scores["train_loss"] = train_loss
