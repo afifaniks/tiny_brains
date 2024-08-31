@@ -24,8 +24,6 @@ class MaskedMSELoss(nn.Module):
 
         loss = ((masked_output - masked_target) ** 2).sum() / mask.sum()
 
-        print(loss)
-
         return loss
 
 
