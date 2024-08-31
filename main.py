@@ -18,16 +18,18 @@ from torchmetrics.image import (
 from torchvision import transforms
 from torchsummary import summary
 
+from dataset.masked_dataset import MaskedDataset
 from dataset.nifti_dataset import NiftiDataset
 from models.unet3d import UNet3D
 from models.unet_monai import Unet3DMonai
-from util.model_util import TotalVariationLoss, CustomSsimLoss
+from util.model_util import TotalVariationLoss, CustomSsimLoss, MaskedMSELoss
 from util.trainer import Trainer
 
 train_image_dir = "assets/cc_dataset_ghosted/train/motion_corrupted"
 train_label_dir = "assets/cc_dataset_ghosted/train/ground_truth"
 validation_image_dir = "assets/cc_dataset_ghosted/val/motion_corrupted"
 validation_label_dir = "assets/cc_dataset_ghosted/val/ground_truth"
+mask_dir = "assets/cc_dataset_ghosted/masks"
 
 data_output_path = "assets/model_outputs"
 
@@ -37,7 +39,7 @@ os.mkdir(data_output_path)
 
 TRANSFORMATIONS = transforms.Compose(
     [
-        transforms.ToTensor(),
+        # transforms.ToTensor(),
         # transforms.Normalize(mean=[0.485, 0.456, 0.406],
         #                      std=[0.229, 0.224, 0.225] )
     ]
@@ -47,10 +49,10 @@ TRANSFORMATIONS = transforms.Compose(
 logger.debug(f"Preparing datasets...")
 target_shape = (256, 288, 288)
 
-train_dataset = NiftiDataset(train_image_dir, train_label_dir, target_shape, TRANSFORMATIONS)
+train_dataset = MaskedDataset(train_image_dir, train_label_dir, mask_dir, target_shape,)
 print(f"Train dataset size: {len(train_dataset)}")
-test_dataset = NiftiDataset(
-    validation_image_dir, validation_label_dir, target_shape, TRANSFORMATIONS
+test_dataset = MaskedDataset(
+    validation_image_dir, validation_label_dir, mask_dir, target_shape, mask_dir,
 )
 print(f"Test dataset size: {len(test_dataset)}")
 
@@ -111,15 +113,16 @@ epochs = 200
 #     optimizer, num_warmup_steps=warmup_steps, num_training_steps=total_steps
 # )
 
-#losses
-mse_criterion = nn.MSELoss()
+# losses
+# mse_criterion = nn.MSELoss()
+mse_criterion = MaskedMSELoss()
 # ssim_criterion = SSIMLoss(spatial_dims=3, data_range=1.0)
 ssim_criterion = CustomSsimLoss(data_range=1.0)
 tv_criterion = TotalVariationLoss()
 losses = {
     "mse": mse_criterion,
-    "ssim": ssim_criterion,
-    "tv": tv_criterion
+    # "ssim": ssim_criterion,
+    # "tv": tv_criterion
 }
 
 cur_time = int(time.time())

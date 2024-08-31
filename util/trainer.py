@@ -50,14 +50,14 @@ class Trainer:
             # Training
             model.train()
             train_loss = 0.0
-            for inputs, targets, _, _, _, _ in tqdm(train_dl, desc="Training steps"):
+            for inputs, targets, masks, _, _, _, _ in tqdm(train_dl, desc="Training steps"):
                 sum_loss = 0.0
                 optimizer.zero_grad()
                 inputs, targets = inputs.to(device), targets.to(device)
                 outputs = model(inputs)
 
                 for loss_name, loss_fn in criterions.items():
-                    loss = loss_fn(outputs, targets)
+                    loss = loss_fn(outputs, targets, masks)
                     sum_loss += loss
                     train_losses[loss_name] = loss
 
@@ -92,7 +92,7 @@ class Trainer:
             model.eval()
             val_loss = 0.0
             with torch.no_grad():
-                for inputs, targets, image_filenames, label_filenames, image_affines, label_affines in tqdm(val_dl,
+                for inputs, targets, masks, image_filenames, label_filenames, image_affines, label_affines in tqdm(val_dl,
                                                                                                             desc="Validation step"):
                     sum_loss = 0.0
                     inputs, targets = inputs.to(device), targets.to(device)
@@ -109,7 +109,7 @@ class Trainer:
                         )
 
                     for loss_name, loss_fn in criterions.items():
-                        loss = loss_fn(outputs, targets)
+                        loss = loss_fn(outputs, targets, masks)
                         sum_loss += loss
                         val_losses[loss_name] = loss
 
