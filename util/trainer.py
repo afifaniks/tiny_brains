@@ -53,7 +53,7 @@ class Trainer:
             for inputs, targets, masks, _, _, _, _ in tqdm(train_dl, desc="Training steps"):
                 sum_loss = 0.0
                 optimizer.zero_grad()
-                inputs, targets = inputs.to(device), targets.to(device)
+                inputs, targets, masks = inputs.to(device), targets.to(device), masks.to(device)
                 outputs = model(inputs)
 
                 for loss_name, loss_fn in criterions.items():
@@ -95,7 +95,7 @@ class Trainer:
                 for inputs, targets, masks, image_filenames, label_filenames, image_affines, label_affines in tqdm(val_dl,
                                                                                                             desc="Validation step"):
                     sum_loss = 0.0
-                    inputs, targets = inputs.to(device), targets.to(device)
+                    inputs, targets, masks = inputs.to(device), targets.to(device), masks.to(device)
                     outputs = model(inputs)
 
                     if epoch % 5 == 0 and any(val_file in image_filenames[0] for val_file in val_files):
