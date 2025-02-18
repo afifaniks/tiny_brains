@@ -6,23 +6,28 @@ from torchmetrics.image import StructuralSimilarityIndexMeasure
 class CustomMseLoss(nn.Module):
     def __init__(self):
         super(CustomMseLoss, self).__init__()
+        self.mse_loss = nn.MSELoss()
 
     def forward(self, output, target):
-        loss = torch.mean((output - target) ** 2)
+        loss = self.mse_loss(output, target)
         return loss
 
 
 class MaskedMSELoss(nn.Module):
     def __init__(self):
         super(MaskedMSELoss, self).__init__()
+        self.mse_loss = nn.MSELoss()
 
-    def forward(self, output, target, mask):
-        mask = mask.float()
+    def forward(self, output, target, mask = None):
+        if mask:
+            mask = mask.float()
+        else:
+            mask = (target > 0.01).float()
 
         masked_output = output * mask
         masked_target = target * mask
 
-        loss = ((masked_output - masked_target) ** 2).sum() / mask.sum()
+        loss = self.mse_loss(masked_output, masked_target)
 
         return loss
 
@@ -33,10 +38,10 @@ class CustomSsimLoss(nn.Module):
     def __init__(self, data_range=1.0):
         super(CustomSsimLoss, self).__init__()
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.ssim_loss = StructuralSimilarityIndexMeasure(data_range=data_range).to(self.device)
+        self.ssim_metric = StructuralSimilarityIndexMeasure(data_range=data_range).to(self.device)
 
     def forward(self, output, target):
-        loss = 1 - self.ssim_loss(output, target)
+        loss = 1 - self.ssim_metric(output, target)
 
         return loss
 
@@ -57,3 +62,30 @@ class TotalVariationLoss(nn.Module):
         loss = torch.abs(tv_output - tv_target)
 
         return loss
+
+class MaskedSsimLoss(nn.Module):
+    def __init__(self, data_range=1.0):
+        super(MaskedSsimLoss, self).__init__()
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.ssim_metric = StructuralSimilarityIndexMeasure(data_range=data_range).to(self.device)
+
+    def forward(self, output, target):
+        mask = (target > 0.01)
+        non_zero_indices = torch.nonzero(mask)
+        min_coords = non_zero_indices.min(dim=0).values
+        max_coords = non_zero_indices.max(dim=0).values
+
+        cropped_output = output[min_coords[0]:max_coords[0]+1, 
+                        min_coords[1]:max_coords[1]+1, 
+                        min_coords[2]:max_coords[2]+1,
+                        min_coords[3]:max_coords[3]+1]
+    
+        cropped_target = target[min_coords[0]:max_coords[0]+1, 
+                        min_coords[1]:max_coords[1]+1, 
+                        min_coords[2]:max_coords[2]+1,
+                        min_coords[3]:max_coords[3]+1]
+
+        masked_ssim_loss = 1 - self.ssim_metric(cropped_output, cropped_target)
+
+        return masked_ssim_loss
+

@@ -44,7 +44,7 @@ class Trainer:
         train_losses = {}
         val_losses = {}
 
-        val_files = ["CC0006", "CC016", "CC0031", "CC0125", "CC0273"]
+        val_files = ["CC0070_philips_3_80_F.nii", "sub-OAS30346_ses-d1685_T1w.nii", "subject_201.nii"]
 
         for epoch in range(epochs):
             # Training
@@ -52,14 +52,14 @@ class Trainer:
             train_loss = 0.0
             train_losses = {}
             val_losses = {}
-            for inputs, targets, masks, _, _, _, _ in tqdm(train_dl, desc="Training steps"):
+            for inputs, targets, image_filenames, _, _, _ in tqdm(train_dl, desc="Training steps"):
                 sum_loss = 0.0
                 optimizer.zero_grad()
-                inputs, targets, masks = inputs.to(device), targets.to(device), masks.to(device)
+                inputs, targets = inputs.to(device), targets.to(device)
                 outputs = model(inputs)
 
                 for loss_name, loss_fn in criterions.items():
-                    loss = loss_fn(outputs, targets, masks)
+                    loss = loss_fn(outputs, targets)
                     sum_loss += loss
                     train_losses[loss_name] = train_losses.get(loss_name, 0) + loss
 
@@ -72,6 +72,7 @@ class Trainer:
                 #         loss = criterion(outputs, targets)
                 #         sum_loss += loss
 
+                sum_loss = sum_loss / len(inputs)
                 sum_loss.backward()
                 optimizer.step()
                 train_loss += sum_loss.item()
@@ -92,24 +93,27 @@ class Trainer:
             model.eval()
             val_loss = 0.0
             with torch.no_grad():
-                for inputs, targets, masks, image_filenames, label_filenames, image_affines, label_affines in tqdm(val_dl,
+                for inputs, targets, image_filenames, label_filenames, image_affines, label_affines in tqdm(val_dl,
                                                                                                             desc="Validation step"):
                     sum_loss = 0.0
-                    inputs, targets, masks = inputs.to(device), targets.to(device), masks.to(device)
+                    inputs, targets = inputs.to(device), targets.to(device)
                     outputs = model(inputs)
 
-                    if epoch % 5 == 0 and any(val_file in image_filenames[0] for val_file in val_files):
+                    if epoch % 5 == 0 and any(val_file in image_filenames for val_file in val_files):
                         logger.info(f"Saving images at epoch: {epoch}")
-                        self._save_images(
-                            [targets[0], inputs[0], outputs[0]],
-                            [f"{label_filenames[0]}_{epoch} target", f"{image_filenames[0]}_{epoch} Input",
-                             f"{image_filenames[0]}_{epoch} Output"],
-                            data_output_path,
-                            affines=[label_affines[0], image_affines[0], image_affines[0]]
-                        )
+                        indices = [index for index, file in enumerate(image_filenames) if file in val_files]
+
+                        for index in indices:
+                            self._save_images(
+                                [targets[index], inputs[index], outputs[index]],
+                                [f"{label_filenames[index]}_{epoch} target", f"{image_filenames[index]}_{epoch} Input",
+                                f"{image_filenames[index]}_{epoch} Output"],
+                                data_output_path,
+                                affines=[label_affines[index], image_affines[index], image_affines[index]]
+                            )
 
                     for loss_name, loss_fn in criterions.items():
-                        loss = loss_fn(outputs, targets, masks)
+                        loss = loss_fn(outputs, targets)
                         sum_loss += loss
                         val_losses[loss_name] = val_losses.get(loss_name, 0) + loss
 
@@ -122,6 +126,7 @@ class Trainer:
                     #         loss = criterion(outputs, targets)
                     #         sum_loss += loss
 
+                    sum_loss = sum_loss / len(inputs)
                     val_loss += sum_loss.item()
 
                     for metric_name, metric_fn in val_metrics.items():

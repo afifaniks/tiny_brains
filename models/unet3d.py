@@ -3,7 +3,7 @@ import torch.nn as nn
 
 
 class UNet3D(nn.Module):
-    def __init__(self, in_channels=1, out_channels=1, num_filters=32):
+    def __init__(self, in_channels=1, out_channels=1, num_filters=16):
         super(UNet3D, self).__init__()
 
         # Contracting Path
