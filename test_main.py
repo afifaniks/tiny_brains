@@ -21,7 +21,7 @@ from torchsummary import summary
 from dataset.nifti_dataset import NiftiDataset
 from models.unet3d import UNet3D
 from models.unet_monai import Unet3DMonai
-from util.model_util import MaskedResidualSsimLoss, TotalVariationLoss, CustomSsimLoss, MaskedMSELoss, MaskedSsimLoss
+from util.model_util import TotalVariationLoss, CustomSsimLoss, MaskedMSELoss, MaskedSsimLoss
 from util.trainer import Trainer
 
 cur_time = int(time.time())
@@ -31,7 +31,7 @@ train_label_dir = "assets/train/gt"
 validation_image_dir = "assets/val/corrupted"
 validation_label_dir = "assets/val/gt"
 
-data_output_path = f"assets/model_outputs_{cur_time}"
+data_output_path = f"assets/model_outputs_test_{cur_time}"
 
 shutil.rmtree(data_output_path, ignore_errors=True)
 
@@ -48,6 +48,7 @@ TRANSFORMATIONS = transforms.Compose(
 # Prepare dataset
 logger.debug(f"Preparing datasets...")
 target_shape = (256, 288, 288)
+# target_shape = None
 
 train_dataset = NiftiDataset(train_image_dir, train_label_dir, target_shape, TRANSFORMATIONS)
 print(f"Train dataset size: {len(train_dataset)}")
@@ -81,14 +82,14 @@ val_loader = DataLoader(
 )
 
 # Model
-model = UNet3D()
-# model = Unet3DMonai()
+# model = UNet3D()
+model = Unet3DMonai()
 model = model.to(DEVICE)
 
 logger.debug(f'Model Summary: {summary(model, input_size=(1, 256, 288, 288), batch_size=BATCH_SIZE)}')
 
 # Hyperparameters
-lr = 5e-4
+lr = 1e-3
 
 # Metrics
 metrics = {
@@ -118,13 +119,11 @@ epochs = 200
 mse_criterion = MaskedMSELoss()
 # ssim_criterion = SSIMLoss(spatial_dims=3, data_range=1.0)
 ssim_criterion = CustomSsimLoss(data_range=1.0)
-residual_ssim_criterion = MaskedResidualSsimLoss(data_range=1.0)
-# masked_ssim_criterion = MaskedSsimLoss(data_range=1.0)
+masked_ssim_criterion = MaskedSsimLoss(data_range=1.0)
 # tv_criterion = TotalVariationLoss()
 losses = {
     "ssim_loss": ssim_criterion,
-    # "masked_ssim_loss": masked_ssim_criterion,
-    "residual_ssim_loss": residual_ssim_criterion,
+    "masked_ssim_loss": masked_ssim_criterion,
     "mse_loss": mse_criterion
     # "tv": tv_criterion
 }
@@ -134,15 +133,15 @@ wandb_config = {
     "name": f"unet_adult_data_{lr}_3d_images_no_scheduler_{cur_time}",
     "config": {
         "learning_rate": lr,
-        "architecture": "U-Net3d (16->128), loss: masked mse + custom ssim + residual_ssim",
+        "architecture": "U-Net3d (16->128), loss: masked mse + ssim + masked ssim",
         "dataset": "Simulated Adult Image",
         "epochs": epochs,
-        "changes": "Lvl 3 motion data, using residual ssim loss, lr is 5e-4"
+        "changes": "Added masked ssim with original ssim and masked mse (data is lvl 3 motion)"
     },
 }
 
-trainer = Trainer(wandb_config=wandb_config)
-# trainer = Trainer()
+# trainer = Trainer(wandb_config=wandb_config)
+trainer = Trainer()
 
 logger.debug("Starting training...")
 trainer.train(

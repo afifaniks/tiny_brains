@@ -44,6 +44,7 @@ class Trainer:
         train_losses = {}
         val_losses = {}
 
+        # val_files = ["CC0056_philips_15_39_F.nii", "sub-OAS30127_ses-d0098_T1w.nii", "subject_73.nii"]
         val_files = ["CC0070_philips_3_80_F.nii", "sub-OAS30346_ses-d1685_T1w.nii", "subject_201.nii"]
 
         for epoch in range(epochs):
@@ -71,8 +72,7 @@ class Trainer:
                 #     for criterion in criterions[1:]:
                 #         loss = criterion(outputs, targets)
                 #         sum_loss += loss
-
-                sum_loss = sum_loss / len(inputs)
+                # sum_loss = sum_loss / len(inputs)
                 sum_loss.backward()
                 optimizer.step()
                 train_loss += sum_loss.item()
@@ -80,8 +80,8 @@ class Trainer:
                 for metric_name, metric_fn in train_metrics.items():
                     metric_fn.update(outputs, targets)
 
-            train_loss /= len(train_dl.dataset)
-            train_losses = {loss_name: loss / len(train_dl.dataset) for loss_name, loss in train_losses.items()}
+            train_loss /= len(train_dl)
+            train_losses = {loss_name: loss / len(train_dl) for loss_name, loss in train_losses.items()}
 
             if metrics:
                 for metric_name, metric_fn in train_metrics.items():
@@ -99,7 +99,7 @@ class Trainer:
                     inputs, targets = inputs.to(device), targets.to(device)
                     outputs = model(inputs)
 
-                    if epoch % 5 == 0 and any(val_file in image_filenames for val_file in val_files):
+                    if epoch % 3 == 0 and any(val_file in image_filenames for val_file in val_files):
                         logger.info(f"Saving images at epoch: {epoch}")
                         indices = [index for index, file in enumerate(image_filenames) if file in val_files]
 
@@ -125,15 +125,14 @@ class Trainer:
                     #     for criterion in criterions[1:]:
                     #         loss = criterion(outputs, targets)
                     #         sum_loss += loss
-
-                    sum_loss = sum_loss / len(inputs)
+                    # sum_loss = sum_loss / len(inputs)
                     val_loss += sum_loss.item()
 
                     for metric_name, metric_fn in val_metrics.items():
                         metric_fn.update(outputs, targets)
 
-            val_loss /= len(val_dl.dataset)
-            val_losses = {loss_name: loss / len(val_dl.dataset) for loss_name, loss in val_losses.items()}
+            val_loss /= len(val_dl)
+            val_losses = {loss_name: loss / len(val_dl) for loss_name, loss in val_losses.items()}
 
             if metrics:
                 for metric_name, metric_fn in val_metrics.items():
