@@ -44,8 +44,9 @@ class Trainer:
         train_losses = {}
         val_losses = {}
 
-        val_files = ["CC0056_philips_15_39_F.nii", "sub-OAS30127_ses-d0098_T1w.nii", "subject_73.nii"]
+        # val_files = ["CC0056_philips_15_39_F.nii", "sub-OAS30127_ses-d0098_T1w.nii", "subject_73.nii"]
         # val_files = ["CC0070_philips_3_80_F.nii", "sub-OAS30346_ses-d1685_T1w.nii", "subject_201.nii"]
+        val_files = ["sub-CC00070XX05_ses-26700_run-14_T2w.nii", "sub-CC00063BN06_ses-15104_run-11_T2w.nii", "sub-CC00115XX08_ses-37801_run-07_T2w.nii"]
 
         for epoch in range(epochs):
             # Training
@@ -99,7 +100,7 @@ class Trainer:
                     inputs, targets = inputs.to(device), targets.to(device)
                     outputs = model(inputs)
 
-                    if (epoch % 3 == 0) and any(val_file in image_filenames for val_file in val_files):
+                    if (epoch % 2 == 0) and any(val_file in image_filenames for val_file in val_files):
                         logger.info(f"Saving images at epoch: {epoch}")
                         indices = [index for index, file in enumerate(image_filenames) if file in val_files]
 

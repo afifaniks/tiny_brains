@@ -30,12 +30,17 @@ torch.manual_seed(42)
 
 cur_time = int(time.time())
 
-train_image_dir = "assets/train_lvl_2/corrupted"
-train_label_dir = "assets/train_lvl_2/gt"
-validation_image_dir = "assets/val_lvl_2/corrupted"
-validation_label_dir = "assets/val_lvl_2/gt"
+# train_image_dir = "assets/train_lvl_2/corrupted"
+# train_label_dir = "assets/train_lvl_2/gt"
+# validation_image_dir = "assets/val_lvl_2/corrupted"
+# validation_label_dir = "assets/val_lvl_2/gt"
 
-data_output_path = f"assets/model_outputs_{cur_time}"
+train_image_dir = "../fine_tuning_samples/train/corrupted"
+train_label_dir = "../fine_tuning_samples/train/gt"
+validation_image_dir = "../fine_tuning_samples/val/corrupted"
+validation_label_dir = "../fine_tuning_samples/val/gt"
+
+data_output_path = f"assets/model_outputs_fine_tuned_{cur_time}"
 
 shutil.rmtree(data_output_path, ignore_errors=True)
 
@@ -51,7 +56,8 @@ TRANSFORMATIONS = transforms.Compose(
 
 # Prepare dataset
 logger.debug(f"Preparing datasets...")
-target_shape = (256, 288, 288)
+# target_shape = (256, 288, 288)
+target_shape = (144, 184, 184)
 
 train_dataset = NiftiDataset(train_image_dir, train_label_dir, target_shape, TRANSFORMATIONS)
 print(f"Train dataset size: {len(train_dataset)}")
@@ -86,11 +92,12 @@ val_loader = DataLoader(
 
 # Model
 model = UNet3D()
-# model.load_state_dict(torch.load("unet3d_1740117456.pth"))
+model.load_state_dict(torch.load("unet3d_1740117456.pth"))
 # model = Unet3DMonai()
 model = model.to(DEVICE)
 
-logger.debug(f'Model Summary: {summary(model, input_size=(1, 256, 288, 288), batch_size=BATCH_SIZE)}')
+# logger.debug(f'Model Summary: {summary(model, input_size=(1, 256, 288, 288), batch_size=BATCH_SIZE)}')
+logger.debug(f'Model Summary: {summary(model, input_size=(1, 144, 184, 184), batch_size=BATCH_SIZE)}')
 
 # Hyperparameters
 lr = 5e-4
@@ -103,7 +110,7 @@ metrics = {
 }
 
 optimizer = optim.Adam(model.parameters(), lr=lr)
-epochs = 200
+epochs = 40
 
 # scheduler
 # lr_scheduler = ReduceLROnPlateau(
@@ -136,13 +143,13 @@ losses = {
 
 wandb_config = {
     "project": "tiny_brains",
-    "name": f"unet_adult_data_{lr}_3d_images_no_scheduler_{cur_time}",
+    "name": f"unet_neonatal_data_{lr}_3d_images_no_scheduler_{cur_time}",
     "config": {
         "learning_rate": lr,
         "architecture": "U-Net3d (16->128), loss: masked mse + masked ssim",
         "dataset": "Simulated Adult Image",
         "epochs": epochs,
-        "changes": "Lvl 2 masked motion data, used sigmoid in model, linear learning rate decay"
+        "changes": "Fine-tuning with neonatal data"
     },
 }
 
@@ -159,9 +166,9 @@ trainer.train(
     train_dl=train_loader,
     val_dl=val_loader,
     device=DEVICE,
-    model_output_path=f"unet3d_{cur_time}.pth",
+    model_output_path=f"unet3d_neonatal_{cur_time}.pth",
     data_output_path=data_output_path,
-    early_stopping_patience=20,
+    early_stopping_patience=5,
     metrics=metrics,
 )
 
