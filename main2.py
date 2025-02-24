@@ -1,4 +1,5 @@
 import os
+import random
 import shutil
 import time
 
@@ -24,12 +25,15 @@ from models.unet_monai import Unet3DMonai
 from util.model_util import MaskedResidualSsimLoss, TotalVariationLoss, CustomSsimLoss, MaskedMSELoss, MaskedSsimLoss
 from util.trainer import Trainer
 
+random.seed(42)
+torch.manual_seed(42)
+
 cur_time = int(time.time())
 
-train_image_dir = "assets/train/corrupted"
-train_label_dir = "assets/train/gt"
-validation_image_dir = "assets/val/corrupted"
-validation_label_dir = "assets/val/gt"
+train_image_dir = "assets/train_lvl_2/corrupted"
+train_label_dir = "assets/train_lvl_2/gt"
+validation_image_dir = "assets/val_lvl_2/corrupted"
+validation_label_dir = "assets/val_lvl_2/gt"
 
 data_output_path = f"assets/model_outputs_{cur_time}"
 
@@ -82,6 +86,7 @@ val_loader = DataLoader(
 
 # Model
 model = UNet3D()
+# model.load_state_dict(torch.load("unet3d_1740117456.pth"))
 # model = Unet3DMonai()
 model = model.to(DEVICE)
 
@@ -115,17 +120,17 @@ epochs = 200
 
 #losses
 # mse_criterion = nn.MSELoss()
-mse_criterion = MaskedMSELoss()
+masked_mse_criterion = MaskedMSELoss()
 # ssim_criterion = SSIMLoss(spatial_dims=3, data_range=1.0)
-ssim_criterion = CustomSsimLoss(data_range=1.0)
-residual_ssim_criterion = MaskedResidualSsimLoss(data_range=1.0)
-# masked_ssim_criterion = MaskedSsimLoss(data_range=1.0)
+# ssim_criterion = CustomSsimLoss(data_range=1.0)
+# residual_ssim_criterion = MaskedResidualSsimLoss(data_range=1.0)
+masked_ssim_criterion = MaskedSsimLoss(data_range=1.0)
 # tv_criterion = TotalVariationLoss()
 losses = {
-    "ssim_loss": ssim_criterion,
-    # "masked_ssim_loss": masked_ssim_criterion,
-    "residual_ssim_loss": residual_ssim_criterion,
-    "mse_loss": mse_criterion
+    # "ssim_loss": ssim_criterion,
+    "masked_ssim_loss": masked_ssim_criterion,
+    # "residual_ssim_loss": residual_ssim_criterion,
+    "mse_loss": masked_mse_criterion
     # "tv": tv_criterion
 }
 
@@ -134,10 +139,10 @@ wandb_config = {
     "name": f"unet_adult_data_{lr}_3d_images_no_scheduler_{cur_time}",
     "config": {
         "learning_rate": lr,
-        "architecture": "U-Net3d (16->128), loss: masked mse + custom ssim + residual_ssim",
+        "architecture": "U-Net3d (16->128), loss: masked mse + masked ssim",
         "dataset": "Simulated Adult Image",
         "epochs": epochs,
-        "changes": "Lvl 3 motion data, using residual ssim loss, lr is 5e-4"
+        "changes": "Lvl 2 masked motion data, used sigmoid in model, linear learning rate decay"
     },
 }
 

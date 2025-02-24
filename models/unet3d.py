@@ -35,6 +35,7 @@ class UNet3D(nn.Module):
         )
         self.conv9 = self.conv_block(num_filters * 2, num_filters)
         self.conv10 = nn.Conv3d(num_filters, out_channels, kernel_size=1)
+        # self.sigmoid = nn.Sigmoid()
 
     def conv_block(self, in_channels, out_channels):
         return nn.Sequential(
@@ -73,5 +74,6 @@ class UNet3D(nn.Module):
         up9 = torch.cat([up9, conv1], dim=1)
         conv9 = self.conv9(up9)
         out = self.conv10(conv9)
+        # out = self.sigmoid(final_conv)
 
         return out

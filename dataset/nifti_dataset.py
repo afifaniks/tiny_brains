@@ -46,6 +46,10 @@ class NiftiDataset(Dataset):
         image = image.get_fdata()
         label = label.get_fdata()
 
+        # label_mask = (label > 0.01).astype(float)
+
+        # image = image * label_mask
+
         image = (image - np.min(image)) / (np.max(image) - np.min(image))
         label = (label - np.min(label)) / (np.max(label) - np.min(label))
 
