@@ -35,10 +35,10 @@ cur_time = int(time.time())
 # validation_image_dir = "assets/val_lvl_2/corrupted"
 # validation_label_dir = "assets/val_lvl_2/gt"
 
-train_image_dir = "../fine_tuning_samples/train/corrupted"
-train_label_dir = "../fine_tuning_samples/train/gt"
-validation_image_dir = "../fine_tuning_samples/val/corrupted"
-validation_label_dir = "../fine_tuning_samples/val/gt"
+train_image_dir = "D:/saad/fine_tuning_samples/train/corrupted"
+train_label_dir = "D:/saad/fine_tuning_samples/train/gt"
+validation_image_dir = "D:/saad/fine_tuning_samples/val/corrupted"
+validation_label_dir = "D:/saad/fine_tuning_samples/val/gt"
 
 data_output_path = f"assets/model_outputs_fine_tuned_{cur_time}"
 
@@ -71,7 +71,7 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 # determine if we will be pinning memory during data loading
 PIN_MEMORY = True if DEVICE == "cuda" else False
 
-BATCH_SIZE = 2
+BATCH_SIZE = 1
 
 # Data loaders
 logger.debug(f"Preparing dataloaders...")

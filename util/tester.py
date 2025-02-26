@@ -8,26 +8,30 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from util import util, image_util
-from util.early_stopping import EarlyStopping
-from util.wandb_manager import WandbManager
+
 
 class Tester:
     def _save_images(self, images, names, output_path, **kwargs):
-
         for image, name, affine in zip(images, names, kwargs['affines']):
             image = image.detach().cpu().numpy()
             image = image.squeeze()
             image_util.save_3d_image(image, output_path, name, affine)
 
+    def _log_metrics(self, metric_scores):
+        metric_str = [f"{key}: {value}" for key, value in metric_scores.items()]
+        logger.info(f"Metric scores: {metric_str}")
+
     def test(
             self, model: nn.Module, test_dl: DataLoader, criterions: [Dict], device: str,
             data_output_path: str, metrics: [Dict]
-             ):
+    ):
         model.eval()
         test_loss = 0.0
         metric_scores = {}
+        test_losses = {}
         with torch.no_grad():
-            for inputs, targets, image_filenames, label_filenames, image_affines, label_affines in tqdm(test_dl, desc="Validation step"):
+            for inputs, targets, image_filenames, label_filenames, image_affines, label_affines in tqdm(test_dl,
+                                                                                                        desc="Test step"):
                 sum_loss = 0.0
                 inputs, targets = inputs.to(device), targets.to(device)
                 outputs = model(inputs)
@@ -38,7 +42,7 @@ class Tester:
                     self._save_images(
                         [targets[index], inputs[index], outputs[index]],
                         [f"{label_filenames[index]} Target", f"{image_filenames[index]} Input",
-                        f"{image_filenames[index]} Output"],
+                         f"{image_filenames[index]} Output"],
                         data_output_path,
                         affines=[label_affines[index], image_affines[index], image_affines[index]]
                     )
@@ -46,27 +50,26 @@ class Tester:
                 for loss_name, loss_fn in criterions.items():
                     loss = loss_fn(outputs, targets)
                     sum_loss += loss
-                    val_losses[loss_name] = val_losses.get(loss_name, 0) + loss
+                    test_losses[loss_name] = test_losses.get(loss_name, 0) + loss
                     test_loss += sum_loss.item()
 
                     for metric_name, metric_fn in metrics.items():
                         metric_fn.update(outputs, targets)
 
-                    test_loss /= len(test_dl)
-                    val_losses = {loss_name: loss / len(test_dl) for loss_name, loss in val_losses.items()}
+        test_loss /= len(test_dl)
+        test_losses = {loss_name: loss / len(test_dl) for loss_name, loss in test_losses.items()}
 
-                    if metrics:
-                        for metric_name, metric_fn in metrics.items():
-                            metric_scores["test_" + metric_name] = metric_fn.compute().cpu().numpy()
-                        for loss_name, loss in val_losses.items():
-                            metric_scores["test_" + loss_name] = loss
+        if metrics:
+            for metric_name, metric_fn in metrics.items():
+                metric_scores["test_" + metric_name] = metric_fn.compute().cpu().numpy()
+            for loss_name, loss in test_losses.items():
+                metric_scores["test_" + loss_name] = loss
 
-                    metric_scores["loss"] = loss
+        metric_scores["loss"] = test_loss
 
-        
+        self._log_metrics(metric_scores)
 
         # have to add logging
-
 
 # class Trainer:
 #     def __init__(self, wandb_config: Optional[dict] = None) -> None:
@@ -236,4 +239,3 @@ class Tester:
 #     def _save_model(self, model, output_path):
 #         logger.info("Saving new checkpoint...")
 #         torch.save(model.state_dict(), output_path)
-
