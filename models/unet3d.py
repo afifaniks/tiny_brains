@@ -3,7 +3,9 @@ import torch.nn as nn
 
 
 class UNet3D(nn.Module):
-    def __init__(self, in_channels=1, out_channels=1, num_filters=16):
+    def __init__(
+        self, in_channels=1, out_channels=1, num_filters=16, freeze_encoder=False
+    ):
         super(UNet3D, self).__init__()
 
         # Contracting Path
@@ -35,14 +37,16 @@ class UNet3D(nn.Module):
         )
         self.conv9 = self.conv_block(num_filters * 2, num_filters)
         self.conv10 = nn.Conv3d(num_filters, out_channels, kernel_size=1)
-        # self.sigmoid = nn.Sigmoid()
+        self.sigmoid = nn.Sigmoid()
+
+        if freeze_encoder:
+            self.freeze_encoder()
 
     def conv_block(self, in_channels, out_channels):
         return nn.Sequential(
             nn.Conv3d(in_channels, out_channels, kernel_size=3, padding=1),
             nn.BatchNorm3d(out_channels),
             nn.ReLU(inplace=True),
-
             nn.Conv3d(out_channels, out_channels, kernel_size=3, padding=1),
             nn.BatchNorm3d(out_channels),
             nn.ReLU(inplace=True),
@@ -77,3 +81,14 @@ class UNet3D(nn.Module):
         # out = self.sigmoid(final_conv)
 
         return out
+
+    def freeze_encoder(self):
+        # Freezing the layers of the encoder (contracting path)
+        for param in self.conv1.parameters():
+            param.requires_grad = False
+        for param in self.conv2.parameters():
+            param.requires_grad = False
+        for param in self.conv3.parameters():
+            param.requires_grad = False
+        for param in self.conv4.parameters():
+            param.requires_grad = False

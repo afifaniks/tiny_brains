@@ -46,9 +46,9 @@ class NiftiDataset(Dataset):
         image = image.get_fdata()
         label = label.get_fdata()
 
-        # label_mask = (label > 0.01).astype(float)
+        label_mask = (label > 0.01).astype(float)
 
-        # image = image * label_mask
+        image = image * label_mask
 
         image = (image - np.min(image)) / (np.max(image) - np.min(image))
         label = (label - np.min(label)) / (np.max(label) - np.min(label))
@@ -66,4 +66,11 @@ class NiftiDataset(Dataset):
             image = self.transform(image)
             label = self.transform(label)
 
-        return image.unsqueeze(0), label.unsqueeze(0), image_filename, label_filename, image_affine, label_affine
+        return (
+            image.unsqueeze(0),
+            label.unsqueeze(0),
+            image_filename,
+            label_filename,
+            image_affine,
+            label_affine,
+        )
