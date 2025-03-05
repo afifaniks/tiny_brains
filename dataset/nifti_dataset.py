@@ -1,5 +1,4 @@
 import os
-
 import nibabel as nib
 import numpy as np
 import torch
@@ -18,13 +17,14 @@ class NiftiDataset(Dataset):
         self.image_filenames = [
             filename
             for filename in os.listdir(image_dir)
-            if filename.endswith((".nii", ".gz"))
+            if filename.endswith((".nii", ".gz")) and filename.startswith(("CC"))
         ]
         self.label_filenames = [
             filename
             for filename in os.listdir(label_dir)
-            if filename.endswith((".nii", "gz"))
+            if filename.endswith((".nii", "gz")) and filename.startswith(("CC"))
         ]
+
 
     def __len__(self):
         return len(self.image_filenames)
@@ -46,9 +46,9 @@ class NiftiDataset(Dataset):
         image = image.get_fdata()
         label = label.get_fdata()
 
-        # label_mask = (label > 0.01).astype(float)
+        label_mask = (label > 0.01).astype(float)
 
-        # image = image * label_mask
+        image = image * label_mask
 
         image = (image - np.min(image)) / (np.max(image) - np.min(image))
         label = (label - np.min(label)) / (np.max(label) - np.min(label))

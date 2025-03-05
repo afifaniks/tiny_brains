@@ -8,4 +8,4 @@
 
 source ~/miniconda3/etc/profile.d/conda.sh && \
 conda activate tiny_brains && \
-python main2.py
+python main_test.py
