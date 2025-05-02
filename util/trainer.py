@@ -62,8 +62,8 @@ class Trainer:
 
                 for loss_name, loss_fn in criterions.items():
                     loss = loss_fn(outputs, targets)
-                    sum_loss += loss
-                    train_losses[loss_name] = train_losses.get(loss_name, 0) + loss
+                    sum_loss = sum_loss + loss
+                    train_losses[loss_name] = train_losses.get(loss_name, 0.0) + loss.item()
 
                 # sum_loss = torch.sum(train_losses.values())
 
@@ -76,7 +76,7 @@ class Trainer:
                 # sum_loss = sum_loss / len(inputs)
                 sum_loss.backward()
                 optimizer.step()
-                train_loss += sum_loss.item()
+                train_loss = train_loss + sum_loss.item()
 
                 for metric_name, metric_fn in train_metrics.items():
                     metric_fn.update(outputs, targets)
@@ -100,7 +100,7 @@ class Trainer:
                     inputs, targets = inputs.to(device), targets.to(device)
                     outputs = model(inputs)
 
-                    if (epoch % 3 == 0) and any(val_file in image_filenames for val_file in val_files):
+                    if (epoch % 5 == 0) and any(val_file in image_filenames for val_file in val_files):
                         logger.info(f"Saving images at epoch: {epoch}")
                         indices = [index for index, file in enumerate(image_filenames) if file in val_files]
 
@@ -115,7 +115,7 @@ class Trainer:
 
                     for loss_name, loss_fn in criterions.items():
                         loss = loss_fn(outputs, targets)
-                        sum_loss += loss
+                        sum_loss = sum_loss + loss
                         val_losses[loss_name] = val_losses.get(loss_name, 0) + loss
 
                     # sum_loss = torch.sum(val_losses.values())
@@ -127,7 +127,7 @@ class Trainer:
                     #         loss = criterion(outputs, targets)
                     #         sum_loss += loss
                     # sum_loss = sum_loss / len(inputs)
-                    val_loss += sum_loss.item()
+                    val_loss = val_loss + sum_loss.item()
 
                     for metric_name, metric_fn in val_metrics.items():
                         metric_fn.update(outputs, targets)

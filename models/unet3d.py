@@ -44,11 +44,11 @@ class UNet3D(nn.Module):
         return nn.Sequential(
             nn.Conv3d(in_channels, out_channels, kernel_size=3, padding=1),
             nn.BatchNorm3d(out_channels),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
 
             nn.Conv3d(out_channels, out_channels, kernel_size=3, padding=1),
             nn.BatchNorm3d(out_channels),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
         )
 
     def forward(self, x):

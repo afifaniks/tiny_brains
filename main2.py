@@ -3,6 +3,7 @@ import random
 import shutil
 import time
 
+from dataset.partial_nifti_dataset import PartialNiftiDataset
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -21,8 +22,8 @@ from torchsummary import summary
 
 from dataset.nifti_dataset import NiftiDataset
 from models.unet3d import UNet3D
-from models.unet_monai import Unet3DMonai
-from util.model_util import MaskedResidualSsimLoss, TotalVariationLoss, CustomSsimLoss, MaskedMSELoss, MaskedSsimLoss
+from models.unet_monai import Unet3DMonai 
+from util.model_util import CustomMseLoss, MaskedResidualSsimLoss, TotalVariationLoss, CustomSsimLoss, MaskedMSELoss, MaskedSsimLoss, VIFLoss3D
 from util.trainer import Trainer
 
 random.seed(42)
@@ -30,19 +31,22 @@ torch.manual_seed(42)
 
 cur_time = int(time.time())
 
-# train_image_dir = "assets/train_lvl_2/corrupted"
-# train_label_dir = "assets/train_lvl_2/gt"
-# validation_image_dir = "assets/val_lvl_2/corrupted"
-# validation_label_dir = "assets/val_lvl_2/gt"
+# train_image_dir = "assets/train_2/gt"
+# train_label_dir = "assets/train_2/gt"
+# validation_image_dir = "assets/val_2/gt"
+# validation_label_dir = "assets/val_2/gt"
 
-train_image_dir = "../fine_tuning_samples/train/corrupted"
-train_label_dir = "../fine_tuning_samples/train/gt"
-validation_image_dir = "../fine_tuning_samples/val/corrupted"
-validation_label_dir = "../fine_tuning_samples/val/gt"
+train_image_dir = "assets/fine_tuning_samples/train/corrupted"
+train_label_dir = "assets/fine_tuning_samples/train/gt"
+validation_image_dir = "assets/fine_tuning_samples/val/corrupted"
+validation_label_dir = "assets/fine_tuning_samples/val/gt"
 
-data_output_path = f"assets/model_outputs_fine_tuned_{cur_time}"
+data_output_path = f"assets/model_outputs_{cur_time}"
 
 shutil.rmtree(data_output_path, ignore_errors=True)
+
+# cwd = os.getcwd()
+# os.chdir(os.path.join(cwd, "tiny_brains"))
 
 os.mkdir(data_output_path)
 
@@ -59,13 +63,22 @@ logger.info(f"Timestamp : {cur_time}")
 # Prepare dataset
 logger.debug(f"Preparing datasets...")
 # target_shape = (256, 288, 288)
-target_shape = (144, 184, 184)
+# target_shape = (144, 184, 184)
+target_shape = None
 
-train_dataset = NiftiDataset(train_image_dir, train_label_dir, target_shape, TRANSFORMATIONS)
+train_partial_files = ["00051", "00053", "00054", "00060", "00067"]
+val_partial_files = ["00065", "00115"]
+
+# train_partial_files = []
+# val_partial_files = []
+
+# train_dataset = NiftiDataset(train_image_dir, train_label_dir, target_shape, TRANSFORMATIONS)
+train_dataset = PartialNiftiDataset(train_image_dir, train_label_dir, partial_files=train_partial_files, target_shape=target_shape, transform=TRANSFORMATIONS)
 print(f"Train dataset size: {len(train_dataset)}")
-val_dataset = NiftiDataset(
-    validation_image_dir, validation_label_dir, target_shape, TRANSFORMATIONS
-)
+# val_dataset = NiftiDataset(
+#     validation_image_dir, validation_label_dir, target_shape, TRANSFORMATIONS
+# )
+val_dataset = PartialNiftiDataset(validation_image_dir, validation_label_dir, partial_files=val_partial_files, target_shape=target_shape, transform=TRANSFORMATIONS)
 print(f"Test dataset size: {len(val_dataset)}")
 
 # Training parameters
@@ -73,7 +86,7 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 # determine if we will be pinning memory during data loading
 PIN_MEMORY = True if DEVICE == "cuda" else False
 
-BATCH_SIZE = 4
+BATCH_SIZE = 2
 
 # Data loaders
 logger.debug(f"Preparing dataloaders...")
@@ -93,10 +106,10 @@ val_loader = DataLoader(
 )
 
 # Model
-model = UNet3D(freeze_encoder=True)
+model = UNet3D()
 # model.load_state_dict(torch.load("unet3d_1740202244.pth"))
 # model.load_state_dict(torch.load("unet3d_1740092881.pth"))
-model.load_state_dict(torch.load("unet3d_1740082644.pth"))
+# model.load_state_dict(torch.load("unet3d_1740082644.pth"))
 # model = Unet3DMonai()
 model = model.to(DEVICE)
 
@@ -130,9 +143,11 @@ epochs = 200
 # )
 
 #losses
-mse_criterion = nn.MSELoss()
-# masked_mse_criterion = MaskedMSELoss()
+# mse_criterion = nn.MSELoss()
+# custom_mse_criterion = CustomMseLoss(scale_factor=10)
+masked_mse_criterion = MaskedMSELoss()
 ssim_criterion = SSIMLoss(spatial_dims=3, data_range=1.0)
+# vif_criterion = VIFLoss3D(device=DEVICE)
 # ssim_criterion = CustomSsimLoss(data_range=1.0)
 # residual_ssim_criterion = MaskedResidualSsimLoss(data_range=1.0)
 # masked_ssim_criterion = MaskedSsimLoss(data_range=1.0)
@@ -141,8 +156,10 @@ losses = {
     "ssim_loss": ssim_criterion,
     # "masked_ssim_loss": masked_ssim_criterion,
     # "residual_ssim_loss": residual_ssim_criterion,
-    # "masked_mse_loss": masked_mse_criterion,
-    "mse_loss": mse_criterion,
+    "masked_mse_loss": masked_mse_criterion,
+    # "mse_loss": mse_criterion,
+    # "custom_mse_loss": custom_mse_criterion
+    # "vif_loss": vif_criterion,
     # "tv": tv_criterion
 }
 
@@ -151,15 +168,16 @@ wandb_config = {
     "name": f"unet_neonatal_data_{lr}_3d_images_no_scheduler_{cur_time}",
     "config": {
         "learning_rate": lr,
-        "architecture": "U-Net3d (16->128), loss: mse + ssim",
-        "dataset": "Neonatal real dataset",
+        "architecture": "U-Net3d (16->128), loss: masked mse + ssim",
+        "dataset": "Neonatal Dataset",
         "epochs": epochs,
-        "changes": "Fine-tuning with normalized neonatal data"
+        "changes": "Training with neonatal data, swapping 5 images (train) and 3 images (validation) to see outputs in results, removing early stopping"
     },
 }
 
 trainer = Trainer(wandb_config=wandb_config)
 # trainer = Trainer()
+
 
 logger.debug("Starting training...")
 trainer.train(
@@ -168,12 +186,12 @@ trainer.train(
     optimizer=optimizer,
     scheduler=None,
     criterions=losses,
-    train_dl=train_loader,
+    train_dl=train_loader, 
     val_dl=val_loader,
     device=DEVICE,
     model_output_path=f"unet3d_neonatal_{cur_time}.pth",
     data_output_path=data_output_path,
-    early_stopping_patience=20,
+    # early_stopping_patience=5,
     metrics=metrics,
 )
 

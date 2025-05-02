@@ -28,7 +28,7 @@ class Tester:
         model.eval()
         test_loss = 0.0
         save_counter = 0
-        mse_losses = []
+        # mse_losses = []
         metric_scores = {}
         test_losses = {}
         with torch.no_grad():
@@ -49,25 +49,27 @@ class Tester:
 
 
                 for index, _ in enumerate(image_filenames):
-                    self._save_images(
-                        [targets[index], inputs[index], outputs[index]],
-                        [f"{label_filenames[index]} Target", f"{image_filenames[index]} Input",
-                        f"{image_filenames[index]} Output"],
-                        data_output_path,
-                        affines=[label_affines[index], image_affines[index], image_affines[index]]
-                    )
+                    # if save_counter % 5 == 0:
+                    if True:
+                        self._save_images(
+                            [targets[index], inputs[index], outputs[index]],
+                            [f"{label_filenames[index]} Target", f"{image_filenames[index]} Input",
+                            f"{image_filenames[index]} Output"],
+                            data_output_path,
+                            affines=[label_affines[index], image_affines[index], image_affines[index]]
+                        )
 
                 for loss_name, loss_fn in criterions.items():
                     loss = loss_fn(outputs, targets)
-                    if loss_name == "mse_loss":
-                        mse_losses.append(loss)
+                    # if loss_name == "mse_loss":
+                    #     mse_losses.append(loss)
 
                     sum_loss += loss
                     test_losses[loss_name] = test_losses.get(loss_name, 0) + loss
                     test_loss += sum_loss.item()
 
-                    for metric_name, metric_fn in metrics.items():
-                        metric_fn.update(outputs, targets)
+                for metric_name, metric_fn in metrics.items():
+                    metric_fn.update(outputs, targets)
 
                 save_counter += 1
 
@@ -75,17 +77,13 @@ class Tester:
         test_losses = {loss_name: loss / len(test_dl) for loss_name, loss in test_losses.items()}
 
         if metrics:
-            for metric_name, values in metrics.items():
-                mean_value = torch.tensor(values).mean().item()
-                std_value = torch.tensor(values).std().item()
-                metric_scores["test_" + metric_name + "_mean"] = mean_value
-                metric_scores["test_" + metric_name + "_std"] = std_value
-                # metric_scores["test_" + metric_name] = metric_fn.compute().cpu().numpy()
+            for metric_name, metric_fn in metrics.items():
+                metric_scores["test_" + metric_name] = metric_fn.compute().cpu().numpy()
             for loss_name, loss in test_losses.items():
                 metric_scores["test_" + loss_name] = loss
 
         metric_scores["loss"] = test_loss
         # mse_losses = np.std(mse_losses)
-        metric_scores["loss_std"] = np.std(mse_losses)
+        # metric_scores["loss_std"] = np.std(mse_losses)
 
         self._log_metrics(metric_scores)

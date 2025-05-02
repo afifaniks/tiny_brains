@@ -3,15 +3,17 @@ import nibabel as nib
 import numpy as np
 import torch
 import torchio as tio
+from loguru import logger
 from torch.utils.data import Dataset
 
 
-class NiftiDataset(Dataset):
-    def __init__(self, image_dir, label_dir, target_shape=None, transform=None):
+class PartialNiftiDataset(Dataset):
+    def __init__(self, image_dir, label_dir, partial_files, target_shape=None, transform=None):
         self.image_dir = image_dir
         self.label_dir = label_dir
         self.transform = transform
         self.target_shape = target_shape
+        self.partial_files = partial_files
 
         if self.target_shape:
             self.crop_or_pad = tio.CropOrPad(self.target_shape)
@@ -33,9 +35,17 @@ class NiftiDataset(Dataset):
 
     def __getitem__(self, idx):
         image_filename = self.image_filenames[idx]
-        label_filename = self.label_filenames[idx]
+        label_filename = image_filename
 
-        image = nib.load(os.path.join(self.image_dir, image_filename))
+        for file in self.partial_files:
+            if file in image_filename:
+                image = nib.load(os.path.join(self.image_dir, image_filename))
+                logger.debug(f"Loaded partial file {file}")
+                break
+        else:
+            image = nib.load(os.path.join(self.label_dir, image_filename))
+
+        # image = nib.load(os.path.join(self.image_dir, image_filename))
         label = nib.load(os.path.join(self.label_dir, label_filename))
 
         image_affine = image.affine

@@ -6,7 +6,7 @@ import torchio as tio
 from torch.utils.data import Dataset
 
 
-class NiftiDataset(Dataset):
+class NiftiDataset2d(Dataset):
     def __init__(self, image_dir, label_dir, target_shape=None, transform=None):
         self.image_dir = image_dir
         self.label_dir = label_dir

@@ -4,12 +4,14 @@ import shutil
 import time
 
 import torch
+import torch.nn as nn
 from loguru import logger
 from torch import optim
 from torch.utils.data import DataLoader
 from torchmetrics.image import PeakSignalNoiseRatio, StructuralSimilarityIndexMeasure
 from torchsummary import summary
 from torchvision.transforms import transforms
+from monai.losses import SSIMLoss
 
 from dataset.nifti_dataset import NiftiDataset
 from models.unet3d import UNet3D
@@ -56,7 +58,7 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 # determine if we will be pinning memory during data loading
 PIN_MEMORY = True if DEVICE == "cuda" else False
 
-BATCH_SIZE = 1
+BATCH_SIZE = 2
 
 # Data loaders
 logger.debug(f"Preparing dataloaders...")
@@ -71,11 +73,12 @@ test_loader = DataLoader(
 # Model
 model = UNet3D()
 model.load_state_dict(torch.load("unet3d_1740082644.pth"))
+# model.load_state_dict(torch.load("unet3d_1741214449.pth"))
 # model = Unet3DMonai()
 model = model.to(DEVICE)
 
-# logger.debug(f'Model Summary: {summary(model, input_size=(1, 256, 288, 288), batch_size=BATCH_SIZE)}')
-logger.debug(f'Model Summary: {summary(model, input_size=(1, 144, 184, 184), batch_size=BATCH_SIZE)}')
+logger.debug(f'Model Summary: {summary(model, input_size=(1, 256, 288, 288), batch_size=BATCH_SIZE)}')
+# logger.debug(f'Model Summary: {summary(model, input_size=(1, 144, 184, 184), batch_size=BATCH_SIZE)}')
 
 # Hyperparameters
 lr = 5e-4
@@ -88,18 +91,19 @@ metrics = {
 }
 
 #losses
-# mse_criterion = nn.MSELoss()
-masked_mse_criterion = MaskedMSELoss()
-# ssim_criterion = SSIMLoss(spatial_dims=3, data_range=1.0)
+mse_criterion = nn.MSELoss()
+# masked_mse_criterion = MaskedMSELoss()
+ssim_criterion = SSIMLoss(spatial_dims=3, data_range=1.0)
 # ssim_criterion = CustomSsimLoss(data_range=1.0)
 # residual_ssim_criterion = MaskedResidualSsimLoss(data_range=1.0)
-masked_ssim_criterion = MaskedSsimLoss(data_range=1.0)
+# masked_ssim_criterion = MaskedSsimLoss(data_range=1.0)
 # tv_criterion = TotalVariationLoss()
 losses = {
-    # "ssim_loss": ssim_criterion,
-    "masked_ssim_loss": masked_ssim_criterion,
+    "ssim_loss": ssim_criterion,
+    "mse_loss": mse_criterion,
+    # "masked_ssim_loss": masked_ssim_criterion,
     # "residual_ssim_loss": residual_ssim_criterion,
-    "mse_loss": masked_mse_criterion
+    # "masked_mse_loss": masked_mse_criterion,
     # "tv": tv_criterion
 }
 

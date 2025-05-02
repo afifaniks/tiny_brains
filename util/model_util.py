@@ -1,15 +1,19 @@
 import torch
 import torch.nn as nn
-from torchmetrics.image import StructuralSimilarityIndexMeasure
+from torchmetrics.image import (
+    StructuralSimilarityIndexMeasure,
+    VisualInformationFidelity
+)
 
 
 class CustomMseLoss(nn.Module):
-    def __init__(self):
+    def __init__(self, scale_factor = 1):
         super(CustomMseLoss, self).__init__()
         self.mse_loss = nn.MSELoss()
+        self.scale_factor = scale_factor
 
     def forward(self, output, target):
-        loss = self.mse_loss(output, target)
+        loss = self.mse_loss(output, target) * self.scale_factor
         return loss
 
 
@@ -121,3 +125,64 @@ class MaskedResidualSsimLoss(nn.Module):
         masked_residual_ssim_loss = 1 - self.ssim_metric(residue, cropped_target)
 
         return masked_residual_ssim_loss
+    
+
+# class VIFLoss3D(nn.Module):
+#     def __init__(self, device="cpu", sigma_n_sq=2.0):
+#         super(VIFLoss3D, self).__init__()
+#         self.vif = VisualInformationFidelity(sigma_n_sq=sigma_n_sq).to(device)
+
+#     def forward(self, preds, targets):
+#         # Initialize the total VIF loss
+#         total_vif_loss = 0.0
+
+#         # Iterate over the depth dimension
+#         for i in range(preds.shape[2]):
+#             # Compute VIF loss for each slice
+#             pred_slice = preds[:, :, 160, :, :]
+#             target_slice = targets[:, :, 160, :, :]
+#             print(i)
+#             print(pred_slice.shape)
+
+#             slice_vif_loss = 1 - self.vif(pred_slice, target_slice)
+#             # total_vif_loss = total_vif_loss + slice_vif_loss
+
+#         # Average the VIF loss over all slices
+#         print("Out of the loop")
+#         total_vif_loss = total_vif_loss / preds.shape[2]
+
+#         print("Ending the function")
+#         return slice_vif_loss
+    
+
+class VIFLoss3D(nn.Module):
+    def __init__(self, device, sigma_n_sq=2.0, epsilon=1e-12):
+        super(VIFLoss3D, self).__init__()
+        # self.vif = VisualInformationFidelity(sigma_n_sq=sigma_n_sq).to(device)
+        self.epsilon = epsilon
+
+    def forward(self, preds, targets):
+
+        loss_list = []
+
+        for i in range(preds.shape[2]):
+            if targets[:, :, i, :, :].any():
+                slice_vif_loss = 1 - self.vif(preds[:, :, i, :, :], targets[:, :, i, :, :])
+                loss_list.append(slice_vif_loss)
+
+        avg_vif_loss = torch.mean(torch.stack(loss_list))
+
+
+
+        return torch.abs(avg_vif_loss) / preds.shape[2]
+    
+
+    def vif(self, preds, targets):
+        # Add epsilon to avoid division by zero
+        sigma_target_sq = torch.var(targets) + self.epsilon
+        sigma_v_sq = torch.var(preds) + self.epsilon
+        g = torch.mean(preds * targets) / sigma_target_sq
+        preds_vif_scale = torch.log10(1.0 + (g**2.0) * sigma_target_sq / (sigma_v_sq + self.epsilon))
+        return preds_vif_scale.mean()
+
+
