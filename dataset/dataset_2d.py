@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import torch
 
 from PIL import Image
 from torch.utils.data import Dataset
@@ -59,6 +60,9 @@ class Dataset2d(Dataset):
         image = image.astype(np.float32)
         label = label.astype(np.float32)
 
+        image = torch.Tensor(image)
+        label = torch.Tensor(label)
+
         # check to see if we are applying any transformations
         if self.transforms is not None:
             # apply the transformations
@@ -66,4 +70,4 @@ class Dataset2d(Dataset):
             label = self.transforms(label)
 
         # return a tuple of the images
-        return image, label, file_name
+        return image.unsqueeze(0), label.unsqueeze(0), file_name

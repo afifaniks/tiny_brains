@@ -27,6 +27,7 @@ from models.unet3d import UNet3D
 from models.unet_monai import Unet3DMonai
 from util.model_util import TotalVariationLoss, CustomSsimLoss, MaskedMSELoss
 from util.trainer import Trainer
+from util.trainer_2d import Trainer2D
 
 random.seed(42)
 torch.manual_seed(42)
@@ -60,7 +61,7 @@ target_shape = (256, 288, 288)
 
 train_dataset = Dataset2d(train_image_dir, train_label_dir, TRANSFORMATIONS)
 print(f"Train dataset size: {len(train_dataset)}")
-test_dataset = MaskedDataset(
+test_dataset = Dataset2d(
     validation_image_dir, validation_label_dir, TRANSFORMATIONS)
 print(f"Test dataset size: {len(test_dataset)}")
 
@@ -124,7 +125,7 @@ epochs = 200
 # losses
 # mse_criterion = nn.MSELoss()
 mse_criterion = MaskedMSELoss()
-ssim_criterion = SSIMLoss(spatial_dims=3, data_range=1.0)
+ssim_criterion = SSIMLoss(spatial_dims=2, data_range=1.0)
 # ssim_criterion = CustomSsimLoss(data_range=1.0)
 # tv_criterion = TotalVariationLoss()
 losses = {
@@ -145,8 +146,8 @@ wandb_config = {
     },
 }
 
-trainer = Trainer(wandb_config=wandb_config)
-# trainer = Trainer()
+# trainer = Trainer2D(wandb_config=wandb_config)
+trainer = Trainer2D()
 
 logger.debug("Starting training...")
 trainer.train(

@@ -1,4 +1,5 @@
 import copy
+import os
 from typing import Optional
 
 import torch
@@ -25,7 +26,8 @@ class Trainer2D:
         train_dl=None,
         val_dl=None,
         device="cpu",
-        output_path=None,
+        model_output_path=None,
+        data_output_path=None,
         early_stopping_patience: Optional[int] = None,
         metrics: Optional[dict] = None,
     ):
@@ -141,7 +143,7 @@ class Trainer2D:
 
             elif val_loss < best_loss:
                 best_loss = val_loss
-                self._save_model(model, output_path)
+                self._save_model(model, model_output_path)
 
             if scheduler:
                 scheduler.step(val_loss)
@@ -160,7 +162,8 @@ class Trainer2D:
         logger.info("Saving new checkpoint...")
         torch.save(model.state_dict(), output_path)
 
-    def _save_images(self, images, names):
+    def _save_images(self, images, names, output_dir):
         for image, name in zip(images, names):
             image = transforms.ToPILImage()(image)
+            image.save(os.path.join(output_dir, "{}.png".format(name)))
             image.save("assets/model_outputs/{}.png".format(name))
