@@ -1,3 +1,4 @@
+import copy
 from typing import Optional
 
 import torch
@@ -19,7 +20,7 @@ class Trainer2D:
         model=None,
         epochs=None,
         optimizer=None,
-        criterion=None,
+        criterions=None,
         scheduler=None,
         train_dl=None,
         val_dl=None,
@@ -35,53 +36,101 @@ class Trainer2D:
             else None
         )
 
+        train_metrics = copy.deepcopy(metrics)
+        val_metrics = copy.deepcopy(metrics)
+
+        metric_scores = {}
+        train_losses = {}
+        val_losses = {}
+
+        val_files = ["sub-CC00070XX05.nii", "sub-CC00065XX08.nii", "sub-CC00115XX08.nii"]
+
         for epoch in range(epochs):
             # Training
             model.train()
             train_loss = 0.0
-            for inputs, targets, file_names in tqdm(train_dl, desc="Training steps"):
+            train_losses = {}
+            val_losses = {}
+            for inputs, targets, image_filenames in tqdm(train_dl, desc="Training steps"):
+                sum_loss = 0.0
                 optimizer.zero_grad()
                 inputs, targets = inputs.to(device), targets.to(device)
                 outputs = model(inputs)
-                loss = criterion(outputs, targets) * inputs.size(0) * inputs.size(1) * inputs.size(2) * inputs.size(3)
-                loss.backward()
+
+                for loss_name, loss_fn in criterions.items():
+                    loss = loss_fn(outputs, targets)
+                    sum_loss = sum_loss + loss
+                    train_losses[loss_name] = train_losses.get(loss_name, 0.0) + loss.item()
+
+                sum_loss.backward()
                 optimizer.step()
-                train_loss += loss.item()
-            train_loss /= len(train_dl.dataset)
+                train_loss = train_loss + sum_loss.item()
+
+                for metric_name, metric_fn in train_metrics.items():
+                    metric_fn.update(outputs, targets)
+
+            train_loss /= len(train_dl)
+            train_losses = {loss_name: loss / len(train_dl) for loss_name, loss in train_losses.items()}
+
+            if metrics:
+                for metric_name, metric_fn in train_metrics.items():
+                    metric_scores["train_" + metric_name] = metric_fn.compute().cpu().numpy()
+                for loss_name, loss in train_losses.items():
+                    metric_scores["train_" + loss_name] = loss
 
             # Validation
             model.eval()
             val_loss = 0.0
             with torch.no_grad():
-                for inputs, targets, file_names in tqdm(val_dl, desc="Validation step"):
+                for inputs, targets, image_filenames in tqdm(val_dl, desc="Validation step"):
+
+                    sum_loss = 0.0
                     inputs, targets = inputs.to(device), targets.to(device)
                     outputs = model(inputs)
 
-                    if epoch % 5 == 0:
+                    if epoch % 5 == 0 and any(val_file in image_filenames for val_file in val_files):
                         logger.info(f"Saving images at epoch: {epoch}")
-                        self._save_images(
-                            [targets[0], inputs[0], outputs[0]],
-                            [
-                                f"{file_names[0]}_epoch{epoch}_target",
-                                f"{file_names[0]}_epoch{epoch}_input",
-                                f"{file_names[0]}_epoch{epoch}_output",
-                            ],
-                        )
-                    loss = criterion(outputs, targets) * inputs.size(0) * inputs.size(1) * inputs.size(2) * inputs.size(3)
-                    val_loss += loss.item()
+                        for index in range(len(inputs)):
+                            self._save_images(
+                                [targets[index], inputs[index], outputs[index]],
+                                [
+                                    f"{image_filenames[index]}_epoch{epoch}_target",
+                                    f"{image_filenames[index]}_epoch{epoch}_input",
+                                    f"{image_filenames[index]}_epoch{epoch}_output",
+                                ],
+                            )
+                    for loss_name, loss_fn in criterions.items():
+                        loss = loss_fn(outputs, targets)
+                        sum_loss = sum_loss + loss
+                        val_losses[loss_name] = val_losses.get(loss_name, 0) + loss
 
-                    for metric_name, metric_fn in metrics.items():
+                    val_loss = val_loss + sum_loss.item()
+
+                    for metric_name, metric_fn in val_metrics.items():
                         metric_fn.update(outputs, targets)
 
-            val_loss /= len(val_dl.dataset)
-
-            metric_scores = {"train_loss": train_loss, "val_loss": val_loss}
+            val_loss /= len(val_dl)
+            val_losses = {loss_name: loss / len(val_dl) for loss_name, loss in val_losses.items()}
 
             if metrics:
-                for metric_name, metric_fn in metrics.items():
-                    metric_scores[metric_name] = metric_fn.compute().cpu().numpy()
+                for metric_name, metric_fn in val_metrics.items():
+                    metric_scores["val_" + metric_name] = metric_fn.compute().cpu().numpy()
+                for loss_name, loss in val_losses.items():
+                    metric_scores["val_" + loss_name] = loss
+
+            metric_scores["train_loss"] = train_loss
+            metric_scores["val_loss"] = val_loss
+
+            metric_scores["train_loss"] = train_loss
+            metric_scores["val_loss"] = val_loss
 
             self._log_epoch(epochs, epoch, metric_scores)
+
+            if metrics:
+                for metric_name, metric_fn in train_metrics.items():
+                    metric_fn.reset()
+                for metric_name, metric_fn in val_metrics.items():
+                    metric_fn.reset()
 
             if early_stopping:
                 early_stopping(val_loss=val_loss, model=model)
@@ -114,4 +163,4 @@ class Trainer2D:
     def _save_images(self, images, names):
         for image, name in zip(images, names):
             image = transforms.ToPILImage()(image)
-            image.save("assets/model_outputs/{}.jpg".format(name))
+            image.save("assets/model_outputs/{}.png".format(name))

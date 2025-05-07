@@ -5,7 +5,7 @@ import torch.nn as nn
 class UNet(nn.Module):
     def __init__(self, in_channels=1, out_channels=1):
         super(UNet, self).__init__()
-        
+
         # Contracting Path
         self.conv1 = self.conv_block(in_channels, 64)
         self.pool1 = nn.MaxPool2d(kernel_size=2)
@@ -16,7 +16,7 @@ class UNet(nn.Module):
         self.conv4 = self.conv_block(256, 512)
         self.pool4 = nn.MaxPool2d(kernel_size=2)
         self.conv5 = self.conv_block(512, 1024)
-        
+
         # Expansive Path
         self.up6 = nn.ConvTranspose2d(1024, 512, kernel_size=2, stride=2)
         self.conv6 = self.conv_block(1024, 512)
@@ -47,7 +47,7 @@ class UNet(nn.Module):
         conv4 = self.conv4(pool3)
         pool4 = self.pool4(conv4)
         conv5 = self.conv5(pool4)
-        
+
         # Expansive Path
         up6 = self.up6(conv5)
         up6 = torch.cat([up6, conv4], dim=1)
@@ -62,5 +62,5 @@ class UNet(nn.Module):
         up9 = torch.cat([up9, conv1], dim=1)
         conv9 = self.conv9(up9)
         out = self.conv10(conv9)
-        
+
         return out

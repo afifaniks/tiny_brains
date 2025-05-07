@@ -1,6 +1,7 @@
 import os
 import shutil
 import time
+import random
 
 import torch
 import torch.nn as nn
@@ -18,20 +19,26 @@ from torchmetrics.image import (
 from torchvision import transforms
 from torchsummary import summary
 
+from dataset.dataset_2d import Dataset2d
 from dataset.masked_dataset import MaskedDataset
 from dataset.nifti_dataset import NiftiDataset
+from models.unet import UNet
 from models.unet3d import UNet3D
 from models.unet_monai import Unet3DMonai
 from util.model_util import TotalVariationLoss, CustomSsimLoss, MaskedMSELoss
 from util.trainer import Trainer
 
-train_image_dir = "assets/cc_dataset_ghosted/train/motion_corrupted"
-train_label_dir = "assets/cc_dataset_ghosted/train/ground_truth"
-validation_image_dir = "assets/cc_dataset_ghosted/val/motion_corrupted"
-validation_label_dir = "assets/cc_dataset_ghosted/val/ground_truth"
-mask_dir = "assets/cc_dataset_ghosted/masks"
+random.seed(42)
+torch.manual_seed(42)
 
-data_output_path = "assets/model_outputs_full"
+cur_time = int(time.time())
+
+train_image_dir = "assets/fine_tuning_samples_2d/train/corrupted"
+train_label_dir = "assets/fine_tuning_samples_2d/train/gt"
+validation_image_dir = "assets/fine_tuning_samples_2d/val/corrupted"
+validation_label_dir = "assets/fine_tuning_samples_2d/val/gt"
+
+data_output_path = f"assets/model_outputs_2d_{cur_time}"
 
 shutil.rmtree(data_output_path, ignore_errors=True)
 
@@ -45,15 +52,16 @@ TRANSFORMATIONS = transforms.Compose(
     ]
 )
 
+logger.info(f"Timestamp : {cur_time}")
+
 # Prepare dataset
 logger.debug(f"Preparing datasets...")
 target_shape = (256, 288, 288)
 
-train_dataset = MaskedDataset(train_image_dir, train_label_dir, mask_dir, target_shape,)
+train_dataset = Dataset2d(train_image_dir, train_label_dir, TRANSFORMATIONS)
 print(f"Train dataset size: {len(train_dataset)}")
 test_dataset = MaskedDataset(
-    validation_image_dir, validation_label_dir, mask_dir, target_shape, mask_dir,
-)
+    validation_image_dir, validation_label_dir, TRANSFORMATIONS)
 print(f"Test dataset size: {len(test_dataset)}")
 
 # Training parameters
@@ -61,7 +69,7 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 # determine if we will be pinning memory during data loading
 PIN_MEMORY = True if DEVICE == "cuda" else False
 
-BATCH_SIZE = 2
+BATCH_SIZE = 32
 
 # Data loaders
 logger.debug(f"Preparing dataloaders...")
@@ -81,11 +89,11 @@ val_loader = DataLoader(
 )
 
 # Model
-model = UNet3D()
+model = UNet()
 # model = Unet3DMonai()
 model = model.to(DEVICE)
 
-logger.debug(f'Model Summary: {summary(model, input_size=(1, 256, 288, 288), batch_size=BATCH_SIZE)}')
+logger.debug(f'Model Summary: {summary(model, input_size=(1, 184, 184), batch_size=BATCH_SIZE)}')
 
 # Hyperparameters
 lr = 5e-4
@@ -94,7 +102,7 @@ lr = 5e-4
 metrics = {
     "psnr": PeakSignalNoiseRatio().to(DEVICE),
     "ssim": StructuralSimilarityIndexMeasure(data_range=1.0).to(DEVICE),
-    # "vif": VisualInformationFidelity().to(DEVICE),
+    "vif": VisualInformationFidelity().to(DEVICE),
 }
 
 optimizer = optim.Adam(model.parameters(), lr=lr)
@@ -116,24 +124,24 @@ epochs = 200
 # losses
 # mse_criterion = nn.MSELoss()
 mse_criterion = MaskedMSELoss()
-# ssim_criterion = SSIMLoss(spatial_dims=3, data_range=1.0)
-ssim_criterion = CustomSsimLoss(data_range=1.0)
-tv_criterion = TotalVariationLoss()
+ssim_criterion = SSIMLoss(spatial_dims=3, data_range=1.0)
+# ssim_criterion = CustomSsimLoss(data_range=1.0)
+# tv_criterion = TotalVariationLoss()
 losses = {
     "mse": mse_criterion,
-    # "ssim": ssim_criterion,
+    "ssim": ssim_criterion,
     # "tv": tv_criterion
 }
 
-cur_time = int(time.time())
 wandb_config = {
     "project": "tiny_brains",
-    "name": f"unet_{lr}_3d_images_linear_scheduler_{cur_time}",
+    "name": f"unet_{lr}_2d_images_no_scheduler_{cur_time}",
     "config": {
         "learning_rate": lr,
-        "architecture": "U-Net3d (32->256). Masked mse loss.",
-        "dataset": "Augmented Adult Image",
+        "architecture": "U-Net2d (64->1024). Masked mse loss + ssim.",
+        "dataset": "Neonatal 2d dataset",
         "epochs": epochs,
+        "changes": "Testing training with the neonatal 2d dataset"
     },
 }
 
@@ -150,9 +158,9 @@ trainer.train(
     train_dl=train_loader,
     val_dl=val_loader,
     device=DEVICE,
-    model_output_path="unet3d.pth",
+    model_output_path=f"unet2d_neonatal_{cur_time}.pth",
     data_output_path=data_output_path,
-    early_stopping_patience=20,
+    # early_stopping_patience=20,
     metrics=metrics,
 )
 
