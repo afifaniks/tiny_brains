@@ -33,7 +33,7 @@ class Trainer2D:
     ):
         best_loss = float("inf")
         early_stopping = (
-            EarlyStopping(patience=early_stopping_patience, path=output_path)
+            EarlyStopping(patience=early_stopping_patience, path=model_output_path)
             if early_stopping_patience
             else None
         )
@@ -100,6 +100,7 @@ class Trainer2D:
                                     f"{image_filenames[index]}_epoch{epoch}_input",
                                     f"{image_filenames[index]}_epoch{epoch}_output",
                                 ],
+                                output_dir=data_output_path
                             )
                     for loss_name, loss_fn in criterions.items():
                         loss = loss_fn(outputs, targets)
@@ -166,4 +167,3 @@ class Trainer2D:
         for image, name in zip(images, names):
             image = transforms.ToPILImage()(image)
             image.save(os.path.join(output_dir, "{}.png".format(name)))
-            image.save("assets/model_outputs/{}.png".format(name))
