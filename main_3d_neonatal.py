@@ -12,6 +12,7 @@ from loguru import logger
 from monai.losses import SSIMLoss
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
+from torchmetrics import NormalizedRootMeanSquaredError
 from torchmetrics.image import (
     PeakSignalNoiseRatio,
     StructuralSimilarityIndexMeasure,
@@ -23,8 +24,8 @@ from torchsummary import summary
 from dataset.nifti_dataset import NiftiDataset
 from models.unet3d import UNet3D
 from models.unet_monai import Unet3DMonai 
-from util.model_util import CustomMseLoss, MaskedResidualSsimLoss, TotalVariationLoss, CustomSsimLoss, MaskedMSELoss, MaskedSsimLoss, VIFLoss3D
-from util.trainer import Trainer
+from util.model_util import CustomMseLoss, CustomPsnrLoss, MaskedResidualSsimLoss, NMSELoss, TotalVariationLoss, CustomSsimLoss, MaskedMSELoss, MaskedSsimLoss, VIFLoss3D
+from util.trainer_3d import Trainer3D
 
 random.seed(42)
 torch.manual_seed(42)
@@ -66,19 +67,16 @@ logger.debug(f"Preparing datasets...")
 # target_shape = (144, 184, 184)
 target_shape = None
 
-train_partial_files = ["00051", "00053", "00054", "00060", "00067"]
-val_partial_files = ["00065", "00115"]
+# train_partial_files = ["00051", "00053", "00054", "00060", "00067"]
+# val_partial_files = ["00065", "00115"]
+train_partial_files = []
+val_partial_files = []
 
-# train_partial_files = []
-# val_partial_files = []
-
-# train_dataset = NiftiDataset(train_image_dir, train_label_dir, target_shape, TRANSFORMATIONS)
-train_dataset = PartialNiftiDataset(train_image_dir, train_label_dir, partial_files=train_partial_files, target_shape=target_shape, transform=TRANSFORMATIONS)
+train_dataset = NiftiDataset(train_image_dir, train_label_dir, transforms=TRANSFORMATIONS)
+# train_dataset = PartialNiftiDataset(train_image_dir, train_label_dir, partial_files=train_partial_files, target_shape=target_shape, transform=TRANSFORMATIONS)
 print(f"Train dataset size: {len(train_dataset)}")
-# val_dataset = NiftiDataset(
-#     validation_image_dir, validation_label_dir, target_shape, TRANSFORMATIONS
-# )
-val_dataset = PartialNiftiDataset(validation_image_dir, validation_label_dir, partial_files=val_partial_files, target_shape=target_shape, transform=TRANSFORMATIONS)
+val_dataset = NiftiDataset(validation_image_dir, validation_label_dir, transforms=TRANSFORMATIONS)
+# val_dataset = PartialNiftiDataset(validation_image_dir, validation_label_dir, partial_files=val_partial_files, target_shape=target_shape, transform=TRANSFORMATIONS)
 print(f"Test dataset size: {len(val_dataset)}")
 
 # Training parameters
@@ -117,7 +115,7 @@ model = model.to(DEVICE)
 logger.debug(f'Model Summary: {summary(model, input_size=(1, 144, 184, 184), batch_size=BATCH_SIZE)}')
 
 # Hyperparameters
-lr = 5e-4
+lr = 1e-3
 
 # Metrics
 metrics = {
@@ -127,7 +125,7 @@ metrics = {
 }
 
 optimizer = optim.Adam(model.parameters(), lr=lr)
-epochs = 200
+epochs = 300
 
 # scheduler
 # lr_scheduler = ReduceLROnPlateau(
@@ -146,21 +144,30 @@ epochs = 200
 # mse_criterion = nn.MSELoss()
 # custom_mse_criterion = CustomMseLoss(scale_factor=10)
 masked_mse_criterion = MaskedMSELoss()
-ssim_criterion = SSIMLoss(spatial_dims=3, data_range=1.0)
+# nmse_criterion = NMSELoss()
+# nrmse_criterion = NormalizedRootMeanSquaredError().to(DEVICE)
+# ssim_criterion = SSIMLoss(spatial_dims=3, data_range=1.0)
 # vif_criterion = VIFLoss3D(device=DEVICE)
 # ssim_criterion = CustomSsimLoss(data_range=1.0)
 # residual_ssim_criterion = MaskedResidualSsimLoss(data_range=1.0)
 # masked_ssim_criterion = MaskedSsimLoss(data_range=1.0)
+# psnr_criterion = CustomPsnrLoss()
 # tv_criterion = TotalVariationLoss()
+# laplacian_criterion = LaplacianLoss()
+# laplacian_criterion = LapLoss()
 losses = {
-    "ssim_loss": ssim_criterion,
+    # "ssim_loss": ssim_criterion,
     # "masked_ssim_loss": masked_ssim_criterion,
+    # "nmse_loss": nmse_criterion,
+    # "nrmse_loss": nrmse_criterion,
     # "residual_ssim_loss": residual_ssim_criterion,
     "masked_mse_loss": masked_mse_criterion,
+    # "psnr_loss": psnr_criterion,
     # "mse_loss": mse_criterion,
     # "custom_mse_loss": custom_mse_criterion
     # "vif_loss": vif_criterion,
-    # "tv": tv_criterion
+    # "tv": tv_criterion,
+    # "laplacian_loss": laplacian_criterion,
 }
 
 wandb_config = {
@@ -168,14 +175,15 @@ wandb_config = {
     "name": f"unet_neonatal_data_{lr}_3d_images_no_scheduler_{cur_time}",
     "config": {
         "learning_rate": lr,
-        "architecture": "U-Net3d (16->128), loss: masked mse + ssim",
+        "architecture": "U-Net3d (16->128), loss: masked_mse",
         "dataset": "Neonatal Dataset",
         "epochs": epochs,
-        "changes": "Training with neonatal data, swapping 5 images (train) and 3 images (validation) to see outputs in results, removing early stopping"
+        "keep": "False",
+        "changes": "Training with the full neonatal data, w/o early stopping and with sigmoid, masked mse with an increased learning rate of 1e-3"
     },
 }
 
-trainer = Trainer(wandb_config=wandb_config)
+trainer = Trainer3D(wandb_config=wandb_config)
 # trainer = Trainer()
 
 

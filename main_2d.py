@@ -25,8 +25,8 @@ from dataset.nifti_dataset import NiftiDataset
 from models.unet import UNet
 from models.unet3d import UNet3D
 from models.unet_monai import Unet3DMonai
-from util.model_util import TotalVariationLoss, CustomSsimLoss, MaskedMSELoss
-from util.trainer import Trainer
+from util.model_util import CustomMseLoss, TotalVariationLoss, CustomSsimLoss, MaskedMSELoss
+from util.trainer_3d import Trainer
 from util.trainer_2d import Trainer2D
 
 random.seed(42)
@@ -57,12 +57,11 @@ logger.info(f"Timestamp : {cur_time}")
 
 # Prepare dataset
 logger.debug(f"Preparing datasets...")
-target_shape = (256, 288, 288)
 
-train_dataset = Dataset2d(train_image_dir, train_label_dir, TRANSFORMATIONS)
+train_dataset = Dataset2d(train_image_dir, train_label_dir, transforms=TRANSFORMATIONS)
 print(f"Train dataset size: {len(train_dataset)}")
 test_dataset = Dataset2d(
-    validation_image_dir, validation_label_dir, TRANSFORMATIONS)
+    validation_image_dir, validation_label_dir, transforms=TRANSFORMATIONS)
 print(f"Test dataset size: {len(test_dataset)}")
 
 # Training parameters
@@ -124,30 +123,32 @@ epochs = 200
 
 # losses
 # mse_criterion = nn.MSELoss()
-mse_criterion = MaskedMSELoss()
-ssim_criterion = SSIMLoss(spatial_dims=2, data_range=1.0)
+mse_criterion = CustomMseLoss(scale_factor=1)
+# mse_criterion = MaskedMSELoss()
+# ssim_criterion = SSIMLoss(spatial_dims=2, data_range=1.0)
 # ssim_criterion = CustomSsimLoss(data_range=1.0)
 # tv_criterion = TotalVariationLoss()
 losses = {
     "mse": mse_criterion,
-    "ssim": ssim_criterion,
+    # "ssim": ssim_criterion,
     # "tv": tv_criterion
 }
 
 wandb_config = {
     "project": "tiny_brains",
-    "name": f"unet_{lr}_2d_images_no_scheduler_{cur_time}",
+    "name": f"unet_{lr}_2d_neonatal_images_no_scheduler_{cur_time}",
     "config": {
         "learning_rate": lr,
-        "architecture": "U-Net2d (64->1024). Masked mse loss + ssim.",
+        "architecture": "U-Net2d (64->256). loss: mse",
         "dataset": "Neonatal 2d dataset",
         "epochs": epochs,
-        "changes": "Testing training with the neonatal 2d dataset"
+        "keep": "False",
+        "changes": "Testing training with the neonatal 2d dataset. Changed the data to preserve the same slice information"
     },
 }
 
-# trainer = Trainer2D(wandb_config=wandb_config)
-trainer = Trainer2D()
+trainer = Trainer2D(wandb_config=wandb_config)
+# trainer = Trainer2D()
 
 logger.debug("Starting training...")
 trainer.train(
