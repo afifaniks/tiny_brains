@@ -28,7 +28,9 @@ class Dataset2d(Dataset):
         )
 
         if len(self.image_paths) != len(self.label_paths):
-            raise Exception("Number of images and labels do not match")
+            raise Exception(
+                f"Number of images and labels do not match. Number of images: {len(self.image_paths)}, Number of labels: {len(self.label_paths)}"
+                )
 
     def __len__(self):
         # return the number of total samples contained in the dataset

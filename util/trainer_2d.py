@@ -1,6 +1,7 @@
 import copy
 import os
-from typing import Optional
+from typing import List, Optional
+from matplotlib import pyplot as plt
 
 import torch
 from loguru import logger
@@ -90,7 +91,7 @@ class Trainer2D:
                     inputs, targets = inputs.to(device), targets.to(device)
                     outputs = model(inputs)
 
-                    if epoch % 5 == 0 and any(val_file in image_filenames for val_file in val_files):
+                    if epoch % 5 == 0 and any(val_file in image_filename for image_filename in image_filenames for val_file in val_files):
                         logger.info(f"Saving images at epoch: {epoch}")
                         for index in range(len(inputs)):
                             self._save_images(
@@ -165,5 +166,6 @@ class Trainer2D:
 
     def _save_images(self, images, names, output_dir):
         for image, name in zip(images, names):
-            image = transforms.ToPILImage()(image)
-            image.save(os.path.join(output_dir, "{}.png".format(name)))
+            image = image.squeeze()
+            output_image = image.detach().cpu().numpy()
+            plt.imsave(os.path.join(output_dir, "{}.png".format(name)), output_image, cmap="gray")
