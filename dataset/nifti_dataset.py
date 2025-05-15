@@ -7,10 +7,10 @@ from torch.utils.data import Dataset
 
 
 class NiftiDataset(Dataset):
-    def __init__(self, image_dir, label_dir, target_shape=None, transform=None):
+    def __init__(self, image_dir, label_dir, target_shape=None, transforms=None):
         self.image_dir = image_dir
         self.label_dir = label_dir
-        self.transform = transform
+        self.transforms = transforms
         self.target_shape = target_shape
 
         if self.target_shape:
@@ -53,8 +53,8 @@ class NiftiDataset(Dataset):
 
         image = image * label_mask
 
-        image = (image - np.min(image)) / (np.max(image) - np.min(image))
-        label = (label - np.min(label)) / (np.max(label) - np.min(label))
+        # image = (image - np.min(image)) / (np.max(image) - np.min(image))
+        # label = (label - np.min(label)) / (np.max(label) - np.min(label))
 
         # Convert to float32
         image = image.astype(np.float32)
@@ -65,8 +65,8 @@ class NiftiDataset(Dataset):
         label = torch.Tensor(label)
 
         # Apply transformations if provided
-        if self.transform:
-            image = self.transform(image)
-            label = self.transform(label)
+        if self.transforms:
+            image = self.transforms(image)
+            label = self.transforms(label)
 
         return image.unsqueeze(0), label.unsqueeze(0), image_filename, label_filename, image_affine, label_affine
