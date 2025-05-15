@@ -21,15 +21,17 @@ from util.tester import Tester
 random.seed(42)
 torch.manual_seed(42)
 
-cur_time = int(time.time())
+# cur_time = int(time.time())
 
-test_image_dir = "assets/test/corrupted"
-test_label_dir = "assets/test/gt"
+test_image_dir = "assets/test_2/corrupted"
+test_label_dir = "assets/test_2/gt"
 
 # test_image_dir = "assets/val_lvl_2/corrupted"
 # test_label_dir = "assets/val_lvl_2/gt"
 
-data_output_path = f"assets/model_outputs_tested_{cur_time}"
+model_timestamp = "1740092881"
+
+data_output_path = f"assets/model_outputs_tested_{model_timestamp}"
 
 shutil.rmtree(data_output_path, ignore_errors=True)
 
@@ -43,7 +45,7 @@ TRANSFORMATIONS = transforms.Compose(
     ]
 )
 
-logger.info(f"Timestamp: {cur_time}")
+logger.info(f"Timestamp: {model_timestamp}")
 
 # Prepare dataset
 logger.debug(f"Preparing datasets...")
@@ -58,7 +60,7 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 # determine if we will be pinning memory during data loading
 PIN_MEMORY = True if DEVICE == "cuda" else False
 
-BATCH_SIZE = 2
+BATCH_SIZE = 1
 
 # Data loaders
 logger.debug(f"Preparing dataloaders...")
@@ -72,8 +74,9 @@ test_loader = DataLoader(
 
 # Model
 model = UNet3D()
-model.load_state_dict(torch.load("unet3d_1740082644.pth"))
+# model.load_state_dict(torch.load("unet3d_1745344630.pth"))
 # model.load_state_dict(torch.load("unet3d_1741214449.pth"))
+model.load_state_dict(torch.load(f"unet3d_{model_timestamp}.pth"))
 # model = Unet3DMonai()
 model = model.to(DEVICE)
 
