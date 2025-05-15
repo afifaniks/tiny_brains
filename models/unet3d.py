@@ -77,7 +77,7 @@ class UNet3D(nn.Module):
         up9 = torch.cat([up9, conv1], dim=1)
         conv9 = self.conv9(up9)
         out = self.conv10(conv9)
-        # out = self.sigmoid(final_conv)
+        out = self.sigmoid(out)
 
         return out
     
