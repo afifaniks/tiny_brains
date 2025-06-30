@@ -11,8 +11,8 @@ class Unet3DMonai(nn.Module):
 
         self.model = nets.UNet(
             spatial_dims=3, in_channels=self.in_channels, out_channels=self.out_channels,
-            channels=(self.num_filters, self.num_filters * 2, self.num_filters * 4),
-            strides=(2, 2)
+            channels=(self.num_filters, self.num_filters * 2, self.num_filters * 4, self.num_filters * 8),
+            strides=(2, 2, 2)
         )
 
     def forward(self, inputs):

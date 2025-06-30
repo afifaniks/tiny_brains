@@ -37,12 +37,12 @@ class UNet3D(nn.Module):
         self.conv10 = nn.Conv3d(num_filters, out_channels, kernel_size=1)
         self.sigmoid = nn.Sigmoid()
 
-        if freeze_encoder:
+        if freeze_encoder: # get rid of this
             self.freeze_encoder()
 
     def conv_block(self, in_channels, out_channels):
         return nn.Sequential(
-            nn.Conv3d(in_channels, out_channels, kernel_size=3, padding=1),
+            nn.Conv3d(in_channels, out_channels, kernel_size=3, padding=1), # check the paddding
             nn.BatchNorm3d(out_channels),
             nn.ReLU(),
 
@@ -68,7 +68,7 @@ class UNet3D(nn.Module):
         # up6 = torch.cat([up6, conv4], dim=1)
         # conv6 = self.conv6(up6)
         up7 = self.up7(conv4)
-        up7 = torch.cat([up7, conv3], dim=1)
+        up7 = torch.cat([up7, conv3], dim=1) # check the dimension
         conv7 = self.conv7(up7)
         up8 = self.up8(conv7)
         up8 = torch.cat([up8, conv2], dim=1)

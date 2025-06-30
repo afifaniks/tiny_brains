@@ -20,11 +20,13 @@ class NiftiDataset(Dataset):
             filename
             for filename in os.listdir(image_dir)
             if filename.endswith((".nii", ".gz"))
+            # and filename.startswith(("subject"))
         ]
         self.label_filenames = [
             filename
             for filename in os.listdir(label_dir)
             if filename.endswith((".nii", "gz"))
+            # and filename.startswith(("subject"))
         ]
 
 

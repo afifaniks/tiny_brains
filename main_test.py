@@ -29,9 +29,9 @@ test_label_dir = "assets/test_2/gt"
 # test_image_dir = "assets/val_lvl_2/corrupted"
 # test_label_dir = "assets/val_lvl_2/gt"
 
-model_timestamp = "1740092881"
+model_timestamp = "1748978635"
 
-data_output_path = f"assets/model_outputs_tested_{model_timestamp}"
+data_output_path = f"assets/model_outputs_tested_IXI_{model_timestamp}"
 
 shutil.rmtree(data_output_path, ignore_errors=True)
 
@@ -49,8 +49,9 @@ logger.info(f"Timestamp: {model_timestamp}")
 
 # Prepare dataset
 logger.debug(f"Preparing datasets...")
-target_shape = (256, 288, 288)
+# target_shape = (256, 288, 288)
 # target_shape = (144, 184, 184)
+target_shape = None
 
 test_dataset = NiftiDataset(test_image_dir, test_label_dir, target_shape, TRANSFORMATIONS)
 logger.info(f"Test dataset size: {len(test_dataset)}")
@@ -76,7 +77,7 @@ test_loader = DataLoader(
 model = UNet3D()
 # model.load_state_dict(torch.load("unet3d_1745344630.pth"))
 # model.load_state_dict(torch.load("unet3d_1741214449.pth"))
-model.load_state_dict(torch.load(f"unet3d_{model_timestamp}.pth"))
+model.load_state_dict(torch.load(f"unet3d_adult_IXI_{model_timestamp}.pth"))
 # model = Unet3DMonai()
 model = model.to(DEVICE)
 

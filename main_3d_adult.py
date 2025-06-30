@@ -2,6 +2,7 @@ import os
 import random
 import shutil
 import time
+import argparse
 
 from dataset.partial_nifti_dataset import PartialNiftiDataset
 import torch
@@ -32,9 +33,16 @@ torch.manual_seed(42)
 
 cur_time = int(time.time())
 
-train_image_dir = "assets/train_2/gt"
+# parsing the input arguments
+parser = argparse.ArgumentParser(description="Training a 3D U-Net model")
+parser.add_argument("--slurm_id")
+args = parser.parse_args()
+
+slurm_id = args.slurm_id
+
+train_image_dir = "assets/train_2/corrupted"
 train_label_dir = "assets/train_2/gt"
-validation_image_dir = "assets/val_2/gt"
+validation_image_dir = "assets/val_2/corrupted"
 validation_label_dir = "assets/val_2/gt"
 
 # train_image_dir = "assets/fine_tuning_samples/train/corrupted"
@@ -42,7 +50,8 @@ validation_label_dir = "assets/val_2/gt"
 # validation_image_dir = "assets/fine_tuning_samples/val/corrupted"
 # validation_label_dir = "assets/fine_tuning_samples/val/gt"
 
-data_output_path = f"assets/model_outputs_{cur_time}"
+data_output_path = f"assets/model_outputs_IXI_{cur_time}"
+# data_output_path = "assets/dummy_outputs"
 
 shutil.rmtree(data_output_path, ignore_errors=True)
 
@@ -59,7 +68,7 @@ TRANSFORMATIONS = transforms.Compose(
     ]
 )
 
-logger.info(f"Timestamp : {cur_time}")
+logger.info(f"Timestamp : {cur_time}, slurm_id: {slurm_id}")
 
 # Prepare dataset
 logger.debug(f"Preparing datasets...")
@@ -69,8 +78,8 @@ target_shape = None
 
 # train_partial_files = ["00051", "00053", "00054", "00060", "00067"]
 # val_partial_files = ["00065", "00115"]
-train_partial_files = []
-val_partial_files = []
+# train_partial_files = []
+# val_partial_files = []
 
 train_dataset = NiftiDataset(train_image_dir, train_label_dir, transforms=TRANSFORMATIONS)
 # train_dataset = PartialNiftiDataset(train_image_dir, train_label_dir, partial_files=train_partial_files, target_shape=target_shape, transform=TRANSFORMATIONS)
@@ -81,6 +90,9 @@ print(f"Test dataset size: {len(val_dataset)}")
 
 # Training parameters
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+if DEVICE != "cuda":
+    logger.warning("CUDA is not available. Training on CPU.")
+
 # determine if we will be pinning memory during data loading
 PIN_MEMORY = True if DEVICE == "cuda" else False
 
@@ -146,18 +158,18 @@ epochs = 200
 masked_mse_criterion = MaskedMSELoss()
 # nmse_criterion = NMSELoss()
 # nrmse_criterion = NormalizedRootMeanSquaredError().to(DEVICE)
-# ssim_criterion = SSIMLoss(spatial_dims=3, data_range=1.0)
+ssim_criterion = SSIMLoss(spatial_dims=3, data_range=1.0)
 # vif_criterion = VIFLoss3D(device=DEVICE)
 # ssim_criterion = CustomSsimLoss(data_range=1.0)
 # residual_ssim_criterion = MaskedResidualSsimLoss(data_range=1.0)
-masked_ssim_criterion = MaskedSsimLoss(data_range=1.0)
+# masked_ssim_criterion = MaskedSsimLoss(data_range=1.0)
 # psnr_criterion = CustomPsnrLoss()
 # tv_criterion = TotalVariationLoss()
 # laplacian_criterion = LaplacianLoss()
 # laplacian_criterion = LapLoss()
 losses = {
-    # "ssim_loss": ssim_criterion,
-    "masked_ssim_loss": masked_ssim_criterion,
+    "ssim_loss": ssim_criterion,
+    # "masked_ssim_loss": masked_ssim_criterion,
     # "masked_ssim_loss": masked_ssim_criterion,
     # "nmse_loss": nmse_criterion,
     # "nrmse_loss": nrmse_criterion,
@@ -171,22 +183,25 @@ losses = {
     # "laplacian_loss": laplacian_criterion,
 }
 
+changes_to_this_run = "Training the model on the IXI dataset"
+
 wandb_config = {
     "project": "tiny_brains",
     "name": f"unet_adult_data_{lr}_3d_images_no_scheduler_{cur_time}",
     "config": {
         "learning_rate": lr,
-        "architecture": "U-Net3d (16->128), loss: masked mse + masked ssim",
+        "architecture": "U-Net3d (16->128), loss: masked mse + ssim",
         "dataset": "Adult Dataset",
         "epochs": epochs,
         "keep": "False",
-        "changes": "Using masked SSIM as loss"
+        "changes": changes_to_this_run,
     },
 }
 
 trainer = Trainer3D(wandb_config=wandb_config)
-# trainer = Trainer()
+# trainer = Trainer3D()
 
+logger.info(changes_to_this_run)
 
 logger.debug("Starting training...")
 trainer.train(
@@ -198,9 +213,9 @@ trainer.train(
     train_dl=train_loader, 
     val_dl=val_loader,
     device=DEVICE,
-    model_output_path=f"unet3d_adult_{cur_time}.pth",
+    model_output_path=f"unet3d_adult_IXI_{cur_time}.pth",
     data_output_path=data_output_path,
-    # early_stopping_patience=5,
+    early_stopping_patience=5,
     metrics=metrics,
 )
 

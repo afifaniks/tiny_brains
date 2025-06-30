@@ -69,18 +69,18 @@ target_shape = None
 
 # train_partial_files = ["00051", "00053", "00054", "00060", "00067"]
 # val_partial_files = ["00065", "00115"]
-train_partial_files = []
-val_partial_files = []
+# train_partial_files = []
+# val_partial_files = []
 
 train_dataset = NiftiDataset(train_image_dir, train_label_dir, transforms=TRANSFORMATIONS)
 # train_dataset = PartialNiftiDataset(train_image_dir, train_label_dir, partial_files=train_partial_files, target_shape=target_shape, transform=TRANSFORMATIONS)
-print(f"Train dataset size: {len(train_dataset)}")
+logger.debug(f"Train dataset size: {len(train_dataset)}")
 val_dataset = NiftiDataset(validation_image_dir, validation_label_dir, transforms=TRANSFORMATIONS)
 # val_dataset = PartialNiftiDataset(validation_image_dir, validation_label_dir, partial_files=val_partial_files, target_shape=target_shape, transform=TRANSFORMATIONS)
-print(f"Test dataset size: {len(val_dataset)}")
+logger.debug(f"Validation dataset size: {len(val_dataset)}")
 
 # Training parameters
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu" # just use cuda or throw an exception
 # determine if we will be pinning memory during data loading
 PIN_MEMORY = True if DEVICE == "cuda" else False
 
@@ -115,7 +115,7 @@ model = model.to(DEVICE)
 logger.debug(f'Model Summary: {summary(model, input_size=(1, 144, 184, 184), batch_size=BATCH_SIZE)}')
 
 # Hyperparameters
-lr = 1e-3
+lr = 5e-4
 
 # Metrics
 metrics = {
@@ -125,7 +125,7 @@ metrics = {
 }
 
 optimizer = optim.Adam(model.parameters(), lr=lr)
-epochs = 300
+epochs = 200
 
 # scheduler
 # lr_scheduler = ReduceLROnPlateau(
@@ -146,7 +146,7 @@ epochs = 300
 masked_mse_criterion = MaskedMSELoss()
 # nmse_criterion = NMSELoss()
 # nrmse_criterion = NormalizedRootMeanSquaredError().to(DEVICE)
-# ssim_criterion = SSIMLoss(spatial_dims=3, data_range=1.0)
+ssim_criterion = SSIMLoss(spatial_dims=3, data_range=1.0)
 # vif_criterion = VIFLoss3D(device=DEVICE)
 # ssim_criterion = CustomSsimLoss(data_range=1.0)
 # residual_ssim_criterion = MaskedResidualSsimLoss(data_range=1.0)
@@ -156,7 +156,7 @@ masked_mse_criterion = MaskedMSELoss()
 # laplacian_criterion = LaplacianLoss()
 # laplacian_criterion = LapLoss()
 losses = {
-    # "ssim_loss": ssim_criterion,
+    "ssim_loss": ssim_criterion,
     # "masked_ssim_loss": masked_ssim_criterion,
     # "nmse_loss": nmse_criterion,
     # "nrmse_loss": nrmse_criterion,
@@ -175,11 +175,11 @@ wandb_config = {
     "name": f"unet_neonatal_data_{lr}_3d_images_no_scheduler_{cur_time}",
     "config": {
         "learning_rate": lr,
-        "architecture": "U-Net3d (16->128), loss: masked_mse",
+        "architecture": "U-Net3d MONAI (16->128), loss: masked_mse + ssim",
         "dataset": "Neonatal Dataset",
         "epochs": epochs,
         "keep": "False",
-        "changes": "Training with the full neonatal data, w/o early stopping and with sigmoid, masked mse with an increased learning rate of 1e-3"
+        "changes": "Training with the full neonatal data, using MONAI UNET model"
     },
 }
 

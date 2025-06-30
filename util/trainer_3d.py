@@ -44,9 +44,9 @@ class Trainer3D:
         train_losses = {}
         val_losses = {}
 
-        # val_files = ["CC0056_philips_15_39_F.nii", "sub-OAS30127_ses-d0098_T1w.nii", "subject_73.nii"]
+        val_files = ["CC0056_philips_15_39_F.nii", "sub-OAS30127_ses-d0098_T1w.nii", "subject_73.nii"]
         # val_files = ["CC0070_philips_3_80_F.nii", "sub-OAS30346_ses-d1685_T1w.nii", "subject_201.nii"]
-        val_files = ["sub-CC00070XX05.nii", "sub-CC00065XX08.nii", "sub-CC00115XX08.nii"]
+        # val_files = ["sub-CC00070XX05.nii", "sub-CC00065XX08.nii", "sub-CC00115XX08.nii"]
 
         for epoch in range(epochs):
             # Training
@@ -55,7 +55,7 @@ class Trainer3D:
             train_losses = {}
             val_losses = {}
             for inputs, targets, image_filenames, _, _, _ in tqdm(train_dl, desc="Training steps"):
-                sum_loss = 0.0
+                sum_loss = 0.0 # sum_loss is the only variable used for backpropagation
                 optimizer.zero_grad()
                 inputs, targets = inputs.to(device), targets.to(device)
                 outputs = model(inputs)
