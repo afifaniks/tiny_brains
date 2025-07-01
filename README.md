@@ -1,5 +1,5 @@
-# NeoMAC: Neonatal Brain Motion Artifact Correction by Augmenting Adult MRI
-This repository contains the codes for the final project of ENSF 619 (Winter 2024) course.
+# Evaluating Deep Learning Based Domain Generalization for Motion Mitigation in Multi-Center Brain MRI
+This repository contains the codes for the paper "Evaluating Deep Learning Based Domain Generalization for Motion Mitigation in Multi-Center Brain MRI".
 
 # Instruction
 TBD
