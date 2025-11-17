@@ -3,6 +3,7 @@ import nibabel as nib
 import numpy as np
 import torch
 import torchio as tio
+from loguru import logger
 from torch.utils.data import Dataset
 
 
@@ -35,10 +36,12 @@ class NiftiDataset(Dataset):
 
     def __getitem__(self, idx):
         image_filename = self.image_filenames[idx]
-        label_filename = self.label_filenames[idx]
+        # label_filename = self.label_filenames[idx]
+
+        # logger.debug(f"Loading image: {image_filename}, label: {label_filename}")
 
         image = nib.load(os.path.join(self.image_dir, image_filename))
-        label = nib.load(os.path.join(self.label_dir, label_filename))
+        label = nib.load(os.path.join(self.label_dir, image_filename))
 
         image_affine = image.affine
         label_affine = label.affine
@@ -71,4 +74,4 @@ class NiftiDataset(Dataset):
             image = self.transforms(image)
             label = self.transforms(label)
 
-        return image.unsqueeze(0), label.unsqueeze(0), image_filename, label_filename, image_affine, label_affine
+        return image.unsqueeze(0), label.unsqueeze(0), image_filename, image_filename, image_affine, label_affine

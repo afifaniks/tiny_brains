@@ -44,9 +44,12 @@ class Trainer3D:
         train_losses = {}
         val_losses = {}
 
-        val_files = ["CC0056_philips_15_39_F.nii", "sub-OAS30127_ses-d0098_T1w.nii", "subject_73.nii"]
+        # val_files = ["CC0056_philips_15_39_F.nii", "sub-OAS30127_ses-d0098_T1w.nii", "subject_73.nii"]
         # val_files = ["CC0070_philips_3_80_F.nii", "sub-OAS30346_ses-d1685_T1w.nii", "subject_201.nii"]
-        # val_files = ["sub-CC00070XX05.nii", "sub-CC00065XX08.nii", "sub-CC00115XX08.nii"]
+        train_files = ["sub-CC00051XX02.nii", "sub-CC00053XX04.nii", "sub-CC00068XX11.nii"]
+        val_files = ["sub-CC00070XX05.nii", "sub-CC00065XX08.nii", "sub-CC00115XX08.nii"]
+        # train_files = ["CC0018_philips_15_41_F.nii", "CC0166_siemens_15_39_M.nii", "CC0332_ge_3_53_F.nii"]
+        # val_files = ["CC0012_philips_15_43_M.nii", "CC0151_siemens_15_71_M.nii", "CC0303_ge_3_53_M.nii"]
 
         for epoch in range(epochs):
             # Training
@@ -54,26 +57,30 @@ class Trainer3D:
             train_loss = 0.0
             train_losses = {}
             val_losses = {}
-            for inputs, targets, image_filenames, _, _, _ in tqdm(train_dl, desc="Training steps"):
+            for inputs, targets, image_filenames, label_filenames, image_affines, label_affines in tqdm(train_dl, desc="Training steps"):
                 sum_loss = 0.0 # sum_loss is the only variable used for backpropagation
                 optimizer.zero_grad()
                 inputs, targets = inputs.to(device), targets.to(device)
                 outputs = model(inputs)
+
+                if (epoch % 5 == 0) and any(train_file in image_filenames for train_file in train_files):
+                    logger.info(f"Saving images at epoch: {epoch}")
+                    indices = [index for index, file in enumerate(image_filenames) if file in train_files]
+
+                    for index in indices:
+                        self._save_images(
+                            [targets[index], inputs[index], outputs[index]],
+                            [f"{label_filenames[index]}_{epoch} target", f"{image_filenames[index]}_{epoch} Input",
+                            f"{image_filenames[index]}_{epoch} Output"],
+                            data_output_path,
+                            affines=[label_affines[index], image_affines[index], image_affines[index]]
+                        )
 
                 for loss_name, loss_fn in criterions.items():
                     loss = loss_fn(outputs, targets)
                     sum_loss = sum_loss + loss
                     train_losses[loss_name] = train_losses.get(loss_name, 0.0) + loss.item()
 
-                # sum_loss = torch.sum(train_losses.values())
-
-                # sum_loss = criterions[0](outputs, targets)
-                #
-                # if len(criterions) > 1:
-                #     for criterion in criterions[1:]:
-                #         loss = criterion(outputs, targets)
-                #         sum_loss += loss
-                # sum_loss = sum_loss / len(inputs)
                 sum_loss.backward()
                 optimizer.step()
                 train_loss = train_loss + sum_loss.item()
@@ -118,15 +125,7 @@ class Trainer3D:
                         sum_loss = sum_loss + loss
                         val_losses[loss_name] = val_losses.get(loss_name, 0) + loss
 
-                    # sum_loss = torch.sum(val_losses.values())
 
-                    # sum_loss = criterions[0](outputs, targets)
-                    #
-                    # if len(criterions) > 1:
-                    #     for criterion in criterions[1:]:
-                    #         loss = criterion(outputs, targets)
-                    #         sum_loss += loss
-                    # sum_loss = sum_loss / len(inputs)
                     val_loss = val_loss + sum_loss.item()
 
                     for metric_name, metric_fn in val_metrics.items():

@@ -2,6 +2,7 @@ import os
 import random
 import shutil
 import time
+import argparse
 
 from dataset.partial_nifti_dataset import PartialNiftiDataset
 import torch
@@ -27,10 +28,17 @@ from models.unet_monai import Unet3DMonai
 from util.model_util import CustomMseLoss, CustomPsnrLoss, MaskedResidualSsimLoss, NMSELoss, TotalVariationLoss, CustomSsimLoss, MaskedMSELoss, MaskedSsimLoss, VIFLoss3D
 from util.trainer_3d import Trainer3D
 
-random.seed(42)
-torch.manual_seed(42)
+# random.seed(42)
+# torch.manual_seed(42)
 
 cur_time = int(time.time())
+
+# parsing the input arguments
+parser = argparse.ArgumentParser(description="Training a neonatal 3D U-Net model")
+parser.add_argument("--slurm_id")
+args = parser.parse_args()
+
+slurm_id = args.slurm_id
 
 # train_image_dir = "assets/train_2/gt"
 # train_label_dir = "assets/train_2/gt"
@@ -42,13 +50,14 @@ train_label_dir = "assets/fine_tuning_samples/train/gt"
 validation_image_dir = "assets/fine_tuning_samples/val/corrupted"
 validation_label_dir = "assets/fine_tuning_samples/val/gt"
 
-data_output_path = f"assets/model_outputs_{cur_time}"
+data_output_path = f"assets/model_outputs_neonatal_{cur_time}"
 
 shutil.rmtree(data_output_path, ignore_errors=True)
 
 # cwd = os.getcwd()
 # os.chdir(os.path.join(cwd, "tiny_brains"))
 
+logger.debug(f"Creating data output directory at: {data_output_path}")
 os.mkdir(data_output_path)
 
 TRANSFORMATIONS = transforms.Compose(
@@ -59,7 +68,7 @@ TRANSFORMATIONS = transforms.Compose(
     ]
 )
 
-logger.info(f"Timestamp : {cur_time}")
+logger.info(f"Timestamp : {cur_time}, slurm_id: {slurm_id}")
 
 # Prepare dataset
 logger.debug(f"Preparing datasets...")
@@ -67,8 +76,8 @@ logger.debug(f"Preparing datasets...")
 # target_shape = (144, 184, 184)
 target_shape = None
 
-# train_partial_files = ["00051", "00053", "00054", "00060", "00067"]
-# val_partial_files = ["00065", "00115"]
+train_partial_files = ["00051", "00053", "00054", "00060", "00067"]
+val_partial_files = ["00065", "00115"]
 # train_partial_files = []
 # val_partial_files = []
 
@@ -84,7 +93,7 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu" # just use cuda or throw
 # determine if we will be pinning memory during data loading
 PIN_MEMORY = True if DEVICE == "cuda" else False
 
-BATCH_SIZE = 2
+BATCH_SIZE = 4
 
 # Data loaders
 logger.debug(f"Preparing dataloaders...")
@@ -141,9 +150,9 @@ epochs = 200
 # )
 
 #losses
-# mse_criterion = nn.MSELoss()
+mse_criterion = nn.MSELoss()
 # custom_mse_criterion = CustomMseLoss(scale_factor=10)
-masked_mse_criterion = MaskedMSELoss()
+# masked_mse_criterion = MaskedMSELoss()
 # nmse_criterion = NMSELoss()
 # nrmse_criterion = NormalizedRootMeanSquaredError().to(DEVICE)
 ssim_criterion = SSIMLoss(spatial_dims=3, data_range=1.0)
@@ -161,7 +170,8 @@ losses = {
     # "nmse_loss": nmse_criterion,
     # "nrmse_loss": nrmse_criterion,
     # "residual_ssim_loss": residual_ssim_criterion,
-    "masked_mse_loss": masked_mse_criterion,
+    "mse_loss": mse_criterion,
+    # "masked_mse_loss": masked_mse_criterion,
     # "psnr_loss": psnr_criterion,
     # "mse_loss": mse_criterion,
     # "custom_mse_loss": custom_mse_criterion
@@ -170,22 +180,27 @@ losses = {
     # "laplacian_loss": laplacian_criterion,
 }
 
+changes_to_this_run = "Changed the model, instead of ConvTranspose3d, used upsample + conv3D for updampling."
+
 wandb_config = {
     "project": "tiny_brains",
     "name": f"unet_neonatal_data_{lr}_3d_images_no_scheduler_{cur_time}",
     "config": {
         "learning_rate": lr,
-        "architecture": "U-Net3d MONAI (16->128), loss: masked_mse + ssim",
-        "dataset": "Neonatal Dataset",
+        "architecture": "U-Net3d (16->128), loss: mse + ssim",
+        "scheduler": "None",
+        "EarlyStopping": "False",
+        "dataset": "Neonatal (limited) Dataset",
         "epochs": epochs,
-        "keep": "False",
-        "changes": "Training with the full neonatal data, using MONAI UNET model"
+        "keep": "True",
+        "changes": changes_to_this_run
     },
 }
 
 trainer = Trainer3D(wandb_config=wandb_config)
-# trainer = Trainer()
+# trainer = Trainer3D()
 
+logger.info(changes_to_this_run)
 
 logger.debug("Starting training...")
 trainer.train(

@@ -22,22 +22,34 @@ class UNet3D(nn.Module):
         #     num_filters * 16, num_filters * 8, kernel_size=2, stride=2
         # )
         # self.conv6 = self.conv_block(num_filters * 16, num_filters * 8)
-        self.up7 = nn.ConvTranspose3d(
-            num_filters * 8, num_filters * 4, kernel_size=2, stride=2
+        # self.up7 = nn.ConvTranspose3d(
+        #     num_filters * 8, num_filters * 4, kernel_size=2, stride=2
+        # )
+        self.up7 = nn.Sequential(
+            nn.Upsample(scale_factor=2, mode="trilinear", align_corners=False),
+            nn.Conv3d(num_filters * 8, num_filters * 4, kernel_size=1),
         )
         self.conv7 = self.conv_block(num_filters * 8, num_filters * 4)
-        self.up8 = nn.ConvTranspose3d(
-            num_filters * 4, num_filters * 2, kernel_size=2, stride=2
+        # self.up8 = nn.ConvTranspose3d(
+        #     num_filters * 4, num_filters * 2, kernel_size=2, stride=2
+        # )
+        self.up8 = nn.Sequential(
+            nn.Upsample(scale_factor=2, mode="trilinear", align_corners=False),
+            nn.Conv3d(num_filters * 4, num_filters * 2, kernel_size=1),
         )
         self.conv8 = self.conv_block(num_filters * 4, num_filters * 2)
-        self.up9 = nn.ConvTranspose3d(
-            num_filters * 2, num_filters, kernel_size=2, stride=2
+        # self.up9 = nn.ConvTranspose3d(
+        #     num_filters * 2, num_filters, kernel_size=2, stride=2
+        # )
+        self.up9 = nn.Sequential(
+            nn.Upsample(scale_factor=2, mode="trilinear", align_corners=False),
+            nn.Conv3d(num_filters * 2, num_filters, kernel_size=1),
         )
         self.conv9 = self.conv_block(num_filters * 2, num_filters)
         self.conv10 = nn.Conv3d(num_filters, out_channels, kernel_size=1)
         self.sigmoid = nn.Sigmoid()
 
-        if freeze_encoder: # get rid of this
+        if freeze_encoder:
             self.freeze_encoder()
 
     def conv_block(self, in_channels, out_channels):
