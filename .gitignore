@@ -13,3 +13,4 @@ test_train_images/
 test_image_slices/
 train_images/
 slurm_out/
+.vscode
