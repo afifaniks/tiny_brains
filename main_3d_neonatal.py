@@ -180,7 +180,7 @@ losses = {
     # "laplacian_loss": laplacian_criterion,
 }
 
-changes_to_this_run = "Changed the model, instead of ConvTranspose3d, used upsample + conv3D for updampling."
+changes_to_this_run = "Changed the model, instead of ConvTranspose3d, used upsample + conv3D for upsampling."
 
 wandb_config = {
     "project": "tiny_brains",
